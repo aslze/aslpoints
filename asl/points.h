@@ -180,7 +180,8 @@ asl::Matrix4_<T> findRigidTransform(const asl::Array<asl::Vec3_<T>>& points1, co
 }
 
 /**
- * Computes an homogrphy (perspective transform) between two sets of 4 2D points.
+ * Computes an homogrphy (perspective transform) between two sets of 4 2D points. Points from source to dest can be computed as:
+ * p2 = H * Vec3(p1, 1)).h2c();
  */
 template<class T>
 asl::Matrix3_<T> findHomography(const asl::Array<asl::Vec2_<T>>& points1, const asl::Array<asl::Vec2_<T>>& points2)

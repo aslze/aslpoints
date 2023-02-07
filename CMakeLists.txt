@@ -23,7 +23,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
 	set(SRC
 		asl/points.h
-		main.cpp
+		demo.cpp
 	)
 
 	add_executable(${TARGET} ${SRC})
