@@ -9,13 +9,13 @@ if(NOT TARGET asls)
 	if(NOT TARGET asls)
 		cmake_minimum_required(VERSION 3.14...3.24)
 		include(FetchContent)
-		FetchContent_Declare(asl URL https://github.com/aslze/asl/archive/1.11.5.zip)
+		FetchContent_Declare(asl URL https://github.com/aslze/asl/archive/1.11.7.zip)
 		FetchContent_MakeAvailable(asl)
 	endif()
 endif()
 
 add_library(aslpoints INTERFACE)
-target_include_directories(aslpoints INTERFACE .)
+target_include_directories(aslpoints INTERFACE ./)
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
