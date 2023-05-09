@@ -180,15 +180,17 @@ asl::Matrix4_<T> findRigidTransform(const asl::Array<asl::Vec3_<T>>& points1, co
 }
 
 /**
- * Computes an homogrphy (perspective transform) between two sets of 4 2D points. Points from source to dest can be computed as:
- * p2 = H * Vec3(p1, 1)).h2c();
+ * Computes a homogrphy (perspective transform) between two sets of 4 2D points. Points from source to dest can be
+ * computed as: p2 = (H * Vec3(p1, 1)).h2c();
  */
 template<class T>
 asl::Matrix3_<T> findHomography(const asl::Array<asl::Vec2_<T>>& points1, const asl::Array<asl::Vec2_<T>>& points2)
 {
-	asl::Matrix_<T> A(9, 9, T(0));
-	asl::Matrix_<T> b(9, 1, T(0));
-	for (int i = 0; i < 4; i++)
+	if (points1.length() != points2.length() || points1.length() < 4)
+		return asl::Matrix3_<T>::identity();
+	asl::Matrix_<T> A(2 * points1.length() + 1, 9, T(0));
+	asl::Matrix_<T> b(2 * points1.length() + 1, 1, T(0));
+	for (int i = 0; i < points1.length(); i++)
 	{
 		A(2 * i, 0) = -points1[i].x;
 		A(2 * i, 1) = -points1[i].y;
@@ -203,12 +205,32 @@ asl::Matrix3_<T> findHomography(const asl::Array<asl::Vec2_<T>>& points1, const 
 		A(2 * i + 1, 7) = points1[i].y * points2[i].y;
 		A(2 * i + 1, 8) = points2[i].y;
 	}
-	A(8, 8) = 1;
-	b(8, 0) = 1;
-	asl::Matrix_<T> x = solve(A, b);
+	A(2 * points1.length(), 8) = 1;
+	b(2 * points1.length(), 0) = 1;
+	asl::Matrix_<T> x = points1.length() == 4 ? solve(A, b) : A.pseudoinverse() * b;
+	x *= 1 / x[8];
 	return asl::Matrix3_<T>(x[0], x[1], x[2], //
 	                        x[3], x[4], x[5], //
 	                        x[6], x[7], x[8]);
+}
+
+/**
+ * Computes the coefficients of polynomial of the given degree that approximates the points p
+ */
+template<class T>
+asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec2_<T>>& p, int deg = 1)
+{
+	asl::Matrix_<T> A(p.length(), deg + 1);
+	asl::Matrix_<T> b(p.length());
+
+	for (int i = 0; i < p.length(); i++)
+	{
+		for (int j = 0; j < deg + 1; j++)
+			A(i, j) = pow(p[i].x, T(j));
+		b[i] = p[i].y;
+	}
+
+	return A.pseudoinverse() * b;
 }
 
 }
