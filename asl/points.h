@@ -1,3 +1,6 @@
+// Copyright(c) 1999-2023 aslze
+// Licensed under the MIT License (http://opensource.org/licenses/MIT)
+
 #ifndef ASL_POINTS_H
 #define ASL_POINTS_H
 
@@ -216,6 +219,7 @@ asl::Matrix3_<T> findHomography(const asl::Array<asl::Vec2_<T>>& points1, const 
 
 /**
  * Computes the coefficients of polynomial of the given degree that approximates the points p
+ * \return Array of coefficients in increasing exponent order [a0, a1, a2, ...] for a0 + a1*x + a2*x^2 ...
  */
 template<class T>
 asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec2_<T>>& p, int deg = 1)
