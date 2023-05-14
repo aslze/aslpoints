@@ -218,7 +218,7 @@ asl::Matrix3_<T> findHomography(const asl::Array<asl::Vec2_<T>>& points1, const 
 }
 
 /**
- * Computes the coefficients of polynomial of the given degree that approximates the points p
+ * Computes the coefficients of polynomial of the given degree that best fits the points p
  * \return Array of coefficients in increasing exponent order [a0, a1, a2, ...] for a0 + a1*x + a2*x^2 ...
  */
 template<class T>
@@ -232,6 +232,31 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec2_<T>>& p, int deg = 1)
 		for (int j = 0; j < deg + 1; j++)
 			A(i, j) = pow(p[i].x, T(j));
 		b[i] = p[i].y;
+	}
+
+	return A.pseudoinverse() * b;
+}
+
+/**
+ * Computes the coefficients of multivariate polynomial that best fits the points p
+ * \return Array of coefficients in a0 + a1*x + a2*y + a3*x^2 + a4*y^2 + a5
+ */
+template<class T>
+asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec3_<T>>& p, int deg = 2)
+{
+	asl::Matrix_<T> A(p.length(), 2 + deg * 2);
+	asl::Matrix_<T> b(p.length());
+
+	for (int i = 0; i < p.length(); i++)
+	{
+		A(i, 0) = 1;
+		for (int j = 0; j < deg; j++)
+		{
+			A(i, 1 + j * 2) = pow(p[i].x, T(j + 1));
+			A(i, 2 + j * 2) = pow(p[i].y, T(j + 1));
+		}
+		A(i, deg * 2 + 1) = p[i].x * p[i].y;
+		b(i, 0) = p[i].z;
 	}
 
 	return A.pseudoinverse() * b;
