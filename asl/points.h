@@ -238,28 +238,59 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec2_<T>>& p, int deg = 1)
 }
 
 /**
- * Computes the coefficients of multivariate polynomial that best fits the points p
- * \return Array of coefficients in a0 + a1*x + a2*y + a3*x^2 + a4*y^2 + a5
+ * Computes the coefficients of bivariate polynomial that best fits the points p
+ * \return Array of coefficients [a00, a01, ..., a10, a11, ...] f(x,y) = sum(a[i,j] * x^i * y^j)
  */
 template<class T>
 asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec3_<T>>& p, int deg = 2)
 {
-	asl::Matrix_<T> A(p.length(), 2 + deg * 2);
+	asl::Matrix_<T> A(p.length(), (deg + 1) * (deg + 1));
 	asl::Matrix_<T> b(p.length());
 
 	for (int i = 0; i < p.length(); i++)
 	{
-		A(i, 0) = 1;
-		for (int j = 0; j < deg; j++)
-		{
-			A(i, 1 + j * 2) = pow(p[i].x, T(j + 1));
-			A(i, 2 + j * 2) = pow(p[i].y, T(j + 1));
-		}
-		A(i, deg * 2 + 1) = p[i].x * p[i].y;
+		for (int j = 0; j < deg + 1; j++)
+			for (int k = 0; k < deg + 1; k++)
+			{
+				A(i, j * (deg + 1) + k) = pow(p[i].x, T(j)) * pow(p[i].y, T(k));
+			}
 		b(i, 0) = p[i].z;
 	}
 
 	return A.pseudoinverse() * b;
+}
+
+/**
+ * Evaluates a bivariate polynomial at (x)
+ */
+template<class T>
+T polynomial(const asl::Matrix_<T>& a, T x)
+{
+	int deg = a.length() - 1;
+	T   z = 0;
+	for (int j = 0; j < deg + 1; j++)
+	{
+		z += a[j] * pow(x, T(j));
+	}
+
+	return z;
+}
+
+/**
+ * Evaluates a bivariate polynomial at (x, y)
+ */
+template<class T>
+T polynomial(const asl::Matrix_<T>& a, T x, T y)
+{
+	int deg = (int)sqrt(a.length()) - 1;
+	T   z = 0;
+	for (int j = 0; j < deg + 1; j++)
+		for (int k = 0; k < deg + 1; k++)
+		{
+			z += a[j * (deg + 1) + k] * pow(x, T(j)) * pow(y, T(k));
+		}
+
+	return z;
 }
 
 }
