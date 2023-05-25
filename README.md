@@ -17,7 +17,9 @@ Currently available functions (may change in the future):
 
 * **findHomography**: Computes a perspective transform between two sets of 2D points
 
-* **fitPoly**: fits a polynomial of any degree to a set of 2D points and returns its coefficients
+* **fitPoly**: fits a polynomial y=f(x) of any degree to a set of 2D points and returns its coefficients
+
+* **fitPoly**: fits a bivariate polynomial z=f(x,y) to a set of 3D points and returns its coefficients
 
 
 

@@ -229,8 +229,12 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec2_<T>>& p, int deg = 1)
 
 	for (int i = 0; i < p.length(); i++)
 	{
+		T xx = 1;
 		for (int j = 0; j < deg + 1; j++)
-			A(i, j) = pow(p[i].x, T(j));
+		{
+			A(i, j) = xx;
+			xx *= p[i].x;
+		}
 		b[i] = p[i].y;
 	}
 
@@ -249,11 +253,17 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec3_<T>>& p, int deg = 2)
 
 	for (int i = 0; i < p.length(); i++)
 	{
+		T xx = 1;
 		for (int j = 0; j < deg + 1; j++)
+		{
+			T yy = 1;
 			for (int k = 0; k < deg + 1; k++)
 			{
-				A(i, j * (deg + 1) + k) = pow(p[i].x, T(j)) * pow(p[i].y, T(k));
+				A(i, j * (deg + 1) + k) = xx * yy;
+				yy *= p[i].y;
 			}
+			xx *= p[i].x;
+		}
 		b(i, 0) = p[i].z;
 	}
 
@@ -261,16 +271,17 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec3_<T>>& p, int deg = 2)
 }
 
 /**
- * Evaluates a bivariate polynomial at (x)
+ * Evaluates polynomial at (x)
  */
 template<class T>
 T polynomial(const asl::Matrix_<T>& a, T x)
 {
 	int deg = a.length() - 1;
-	T   z = 0;
+	T   z = 0, xx = 1;
 	for (int j = 0; j < deg + 1; j++)
 	{
-		z += a[j] * pow(x, T(j));
+		z += a[j] * xx;
+		xx *= x;
 	}
 
 	return z;
@@ -283,12 +294,17 @@ template<class T>
 T polynomial(const asl::Matrix_<T>& a, T x, T y)
 {
 	int deg = (int)sqrt(a.length()) - 1;
-	T   z = 0;
+	T   z = 0, xx = 1;
 	for (int j = 0; j < deg + 1; j++)
+	{
+		T yy = 1;
 		for (int k = 0; k < deg + 1; k++)
 		{
-			z += a[j * (deg + 1) + k] * pow(x, T(j)) * pow(y, T(k));
+			z += a[j * (deg + 1) + k] * xx * yy;
+			yy *= y;
 		}
+		xx *= x;
+	}
 
 	return z;
 }
