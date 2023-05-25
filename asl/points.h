@@ -29,7 +29,7 @@ asl::Array<T> fitPlaneXY(const asl::Array<asl::Vec3_<T>>& points)
 		b(i, 0) = points[i].z;
 	}
 
-	return (A.pseudoinverse() * b).data();
+	return (solve(A, b).data();
 }
 
 /**
@@ -49,7 +49,7 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 		b(i, 0) = points[i].x;
 	}
 
-	Matrix_<T> p1 = A.pseudoinverse() * b;
+	Matrix_<T> p1 = solve(A, b);
 	Vec3_<T>   n1 = Vec3_<T>(1, -p1[0], -p1[1]);
 
 	for (int i = 0; i < points.length(); i++)
@@ -60,7 +60,7 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 		b(i, 0) = points[i].y;
 	}
 
-	Matrix_<T> p2 = A.pseudoinverse() * b;
+	Matrix_<T> p2 = solve(A, b);
 
 	Vec3_<T> n2 = Vec3_<T>(-p2[0], 1, -p2[1]);
 
@@ -72,7 +72,7 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 		b(i, 0) = points[i].z;
 	}
 
-	Matrix_<T> p3 = A.pseudoinverse() * b;
+	Matrix_<T> p3 = solve(A, b);
 	Vec3_<T>   n3 = Vec3_<T>(-p3[0], -p3[1], 1);
 
 	T        s1 = 0, s2 = 0, s3 = 0;
@@ -117,8 +117,6 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 	for (int i = 0; i < points.length(); i++)
 		s1 += (n * (points[i] - c) * n).length2();
 
-	// optionally refine with distances to plane ?
-
 	return { c.x, c.y, c.z, n.x, n.y, n.z };
 }
 
@@ -144,7 +142,7 @@ asl::Matrix3_<T> findRigidTransform(const asl::Array<asl::Vec2_<T>>& points1, co
 		b(2 * i + 1, 0) = points2[i].y;
 	}
 
-	asl::Matrix_<T> x = A.pseudoinverse() * b;
+	asl::Matrix_<T> x = solve(A, b);
 	return asl::Matrix3_<T>(x[0], x[1], x[2], //
 	                        -x[1], x[0], x[3]);
 }
@@ -176,7 +174,7 @@ asl::Matrix4_<T> findRigidTransform(const asl::Array<asl::Vec3_<T>>& points1, co
 		b(3 * i + 2, 0) = points2[i].z;
 	}
 
-	asl::Matrix_<T> x = A.pseudoinverse() * b;
+	asl::Matrix_<T> x = solve(A, b);
 	return orthonormalize(asl::Matrix4_<T>(x[0], x[1], x[2], x[3], //
 	                                       x[4], x[5], x[6], x[7], //
 	                                       x[8], x[9], x[10], x[11]));
@@ -210,7 +208,7 @@ asl::Matrix3_<T> findHomography(const asl::Array<asl::Vec2_<T>>& points1, const 
 	}
 	A(2 * points1.length(), 8) = 1;
 	b(2 * points1.length(), 0) = 1;
-	asl::Matrix_<T> x = points1.length() == 4 ? solve(A, b) : A.pseudoinverse() * b;
+	asl::Matrix_<T> x = solve(A, b);
 	x *= 1 / x[8];
 	return asl::Matrix3_<T>(x[0], x[1], x[2], //
 	                        x[3], x[4], x[5], //
@@ -238,7 +236,7 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec2_<T>>& p, int deg = 1)
 		b[i] = p[i].y;
 	}
 
-	return A.pseudoinverse() * b;
+	return solve(A, b);
 }
 
 /**
@@ -267,7 +265,7 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec3_<T>>& p, int deg = 2)
 		b(i, 0) = p[i].z;
 	}
 
-	return A.pseudoinverse() * b;
+	return solve(A, b);
 }
 
 /**
