@@ -29,7 +29,7 @@ asl::Array<T> fitPlaneXY(const asl::Array<asl::Vec3_<T>>& points)
 		b(i, 0) = points[i].z;
 	}
 
-	return (solve(A, b).data();
+	return solve(A, b).data();
 }
 
 /**
