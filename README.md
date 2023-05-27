@@ -11,6 +11,8 @@ Currently available functions (may change in the future):
 
 * **fitPlane**: fits a plane to a set of 3D points and returns it as a point and normal
 
+* **fitCircle**: fits a circle to a set of 2D points
+
 * **findRigidTransform**: Estimates the rigid transform between two sets of 2D points
 
 * **findRigidTransform**: Estimates the rigid transform between two sets of 3D points

@@ -13,6 +13,32 @@
 namespace asl
 {
 /**
+ * Fits a circle to a set of points and returns its center and radius as Vec3(cx, cy, r)
+ */
+template<class T>
+asl::Vec3_<T> fitCircle(const asl::Array<asl::Vec2_<T>>& points)
+{
+	if (points.length() == 2)
+	{
+		asl::Vec2_<T> c = (points[0] + points[1]) / 2;
+		return asl::Vec3_<T>(c.x, c.y, (points[0] - c).length());
+	}
+	asl::Matrix_<T> A(points.length(), 3);
+	asl::Matrix_<T> b(points.length(), 1);
+	for (int i = 0; i < points.length(); i++)
+	{
+		A(i, 0) = 2 * points[i].x;
+		A(i, 1) = 2 * points[i].y;
+		A(i, 2) = 1;
+		b(i, 0) = sqr(points[i].x) + sqr(points[i].y);
+	}
+
+	asl::Matrix_<T> a = solve(A, b);
+
+	return asl::Vec3_<T>(a[0], a[1], sqrt(a[2] + sqr(a[0]) + sqr(a[1])));
+}
+
+/**
  * Fits a plane to set of 3D points, in the form z = a*x + b*y + c
  * \return the parameters [a, b, c]
  */
