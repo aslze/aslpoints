@@ -146,6 +146,38 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 	return { c.x, c.y, c.z, n.x, n.y, n.z };
 }
 
+template<class T>
+Pair<Vec3_<T>> getOrthonormalBase(const asl::Vec3_<T>& v)
+{
+	Vec3_<T> a(1, 0, 0);
+	if (fabs(a * v.normalized()) > T(0.8))
+		a = { 0, 1, 0 };
+	return { (a ^ v).normalized(), ((a ^ v) ^ v).normalized() };
+}
+
+/**
+ * Fits a circle to a set of 3D points and returns its center and its plane normal, with length equal to its radius
+ */
+template <class T>
+static Pair<Vec3_<T> > fitCircle(const Array<Vec3_<T> >& points)
+{
+	auto     plane = fitPlane(points);
+	Vec3_<T> pbase(plane[0], plane[1], plane[2]);
+	Vec3_<T> normal(plane[3], plane[4], plane[5]);
+
+	auto base = getOrthonormalBase(normal);
+
+	auto points2 = points.map_<Vec2_<T>>(
+	    [=](const Vec3_<T>& p) { return Vec2_<T>(base.first * (p - pbase), base.second * (p - pbase)); });
+
+	auto circle = fitCircle(points2);
+
+	auto center = pbase + circle.x * base.first + circle.y * base.second;
+
+	return { center, normal * circle.z };
+}
+
+
 /**
  * Estimates the rigid transform between two sets of 2D points
  */
