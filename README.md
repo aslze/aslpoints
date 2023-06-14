@@ -13,6 +13,8 @@ Currently available functions (may change in the future):
 
 * **fitCircle**: fits a circle to a set of 2D points
 
+* **findAffineTransform**: Estimates the affine transform between two sets of 2D points
+
 * **findRigidTransform**: Estimates the rigid transform between two sets of 2D points
 
 * **findRigidTransform**: Estimates the rigid transform between two sets of 3D points
@@ -31,7 +33,7 @@ Can easily be included using CMake in other projects where ASL is already. For e
 
 ```cmake
 include(FetchContent)
-FetchContent_Declare(aslpoints URL https://github.com/aslze/aslpoints/archive/1.0.zip)
+FetchContent_Declare(aslpoints URL https://github.com/aslze/aslpoints/archive/1.1.zip)
 FetchContent_MakeAvailable(aslpoints)
 target_link_libraries(myprogram asls aslpoints)
 ```
