@@ -177,6 +177,36 @@ static Pair<Vec3_<T> > fitCircle(const Array<Vec3_<T> >& points)
 	return { center, normal * circle.z };
 }
 
+/**
+ * Estimates the affine transform between two sets of 2D points
+ */
+template<class T>
+asl::Matrix3_<T> findAffineTransform(const asl::Array<asl::Vec2_<T>>& points1, const asl::Array<asl::Vec2_<T>>& points2)
+{
+	asl::Matrix_<T> A(points1.length() * 2, 6);
+	asl::Matrix_<T> b(points1.length() * 2, 1);
+	for (int i = 0; i < points1.length(); i++)
+	{
+		A(2 * i, 0) = points1[i].x;
+		A(2 * i, 1) = points1[i].y;
+		A(2 * i, 2) = 1;
+		A(2 * i, 3) = 0;
+		A(2 * i, 4) = 0;
+		A(2 * i, 5) = 0;
+		A(2 * i + 1, 0) = 0;
+		A(2 * i + 1, 1) = 0;
+		A(2 * i + 1, 2) = 0;
+		A(2 * i + 1, 3) = points1[i].x;
+		A(2 * i + 1, 4) = points1[i].y;
+		A(2 * i + 1, 5) = 1;
+		b(2 * i, 0) = points2[i].x;
+		b(2 * i + 1, 0) = points2[i].y;
+	}
+
+	asl::Matrix_<T> x = solve(A, b);
+	return asl::Matrix3_<T>(x[0], x[1], x[2], //
+	                        x[3], x[4], x[5]);
+}
 
 /**
  * Estimates the rigid transform between two sets of 2D points
