@@ -158,8 +158,8 @@ Pair<Vec3_<T>> getOrthonormalBase(const asl::Vec3_<T>& v)
 /**
  * Fits a circle to a set of 3D points and returns its center and its plane normal, with length equal to its radius
  */
-template <class T>
-static Pair<Vec3_<T> > fitCircle(const Array<Vec3_<T> >& points)
+template<class T>
+static Pair<Vec3_<T>> fitCircle(const Array<Vec3_<T>>& points)
 {
 	auto     plane = fitPlane(points);
 	Vec3_<T> pbase(plane[0], plane[1], plane[2]);
@@ -167,7 +167,7 @@ static Pair<Vec3_<T> > fitCircle(const Array<Vec3_<T> >& points)
 
 	auto base = getOrthonormalBase(normal);
 
-	auto points2 = points.map_<Vec2_<T>>(
+	auto points2 = points.template map_<Vec2_<T>>(
 	    [=](const Vec3_<T>& p) { return Vec2_<T>(base.first * (p - pbase), base.second * (p - pbase)); });
 
 	auto circle = fitCircle(points2);
@@ -239,33 +239,62 @@ asl::Matrix3_<T> findRigidTransform(const asl::Array<asl::Vec2_<T>>& points1, co
  * Computes the rigid transform between two sets of 3D points
  */
 template<class T>
-asl::Matrix4_<T> findRigidTransform(const asl::Array<asl::Vec3_<T>>& points1, const asl::Array<asl::Vec3_<T>>& points2)
+Matrix4_<T> findRigidTransform(const Array<Vec3_<T>>& points1, const Array<Vec3_<T>>& points2, int steps = 4)
 {
-	asl::Matrix_<T> A(points1.length() * 3, 12, T(0));
-	asl::Matrix_<T> b(points1.length() * 3);
+	if (points1.length() != points2.length())
+		return Matrix4_<T>::identity();
+	Vec3_<T> c1(0, 0, 0), c2(0, 0, 0);
 	for (int i = 0; i < points1.length(); i++)
 	{
-		A(3 * i, 0) = points1[i].x;
-		A(3 * i, 1) = points1[i].y;
-		A(3 * i, 2) = points1[i].z;
+		c1 += points1[i];
+		c2 += points2[i];
+	}
+	c1 /= (T)points1.length();
+	c2 /= (T)points2.length();
+
+	Matrix_<T> A(points1.length() * 3, 12, T(0));
+	Matrix_<T> b(points1.length() * 3);
+	for (int i = 0; i < points1.length(); i++)
+	{
+		A(3 * i, 0) = points1[i].x - c1.x;
+		A(3 * i, 1) = points1[i].y - c1.y;
+		A(3 * i, 2) = points1[i].z - c1.z;
 		A(3 * i, 3) = 1;
-		A(3 * i + 1, 4) = points1[i].x;
-		A(3 * i + 1, 5) = points1[i].y;
-		A(3 * i + 1, 6) = points1[i].z;
+		A(3 * i + 1, 4) = points1[i].x - c1.x;
+		A(3 * i + 1, 5) = points1[i].y - c1.y;
+		A(3 * i + 1, 6) = points1[i].z - c1.z;
 		A(3 * i + 1, 7) = 1;
-		A(3 * i + 2, 8) = points1[i].x;
-		A(3 * i + 2, 9) = points1[i].y;
-		A(3 * i + 2, 10) = points1[i].z;
+		A(3 * i + 2, 8) = points1[i].x - c1.x;
+		A(3 * i + 2, 9) = points1[i].y - c1.y;
+		A(3 * i + 2, 10) = points1[i].z - c1.z;
 		A(3 * i + 2, 11) = 1;
-		b(3 * i, 0) = points2[i].x;
-		b(3 * i + 1, 0) = points2[i].y;
-		b(3 * i + 2, 0) = points2[i].z;
+		b(3 * i, 0) = points2[i].x - c2.x;
+		b(3 * i + 1, 0) = points2[i].y - c2.y;
+		b(3 * i + 2, 0) = points2[i].z - c2.z;
 	}
 
-	asl::Matrix_<T> x = solve(A, b);
-	return orthonormalize(asl::Matrix4_<T>(x[0], x[1], x[2], x[3], //
-	                                       x[4], x[5], x[6], x[7], //
-	                                       x[8], x[9], x[10], x[11]));
+	Matrix_<T>  x = solve(A, b);
+	Matrix4_<T> m = orthonormalize(Matrix4_<T>(x[0], x[1], x[2], x[3], //
+	                                           x[4], x[5], x[6], x[7], //
+	                                           x[8], x[9], x[10], x[11]));
+	
+	auto aa = m.axisAngle();
+	x = solveZero(
+	    [&](const Matrix_<T>& x) {
+		    Matrix_<T>  y(points1.length() * 2);
+		    Matrix4_<T> h = Matrix4_<T>::translate(c2) * Matrix4_<T>::rotate(Vec3_<T>(x[0], x[1], x[2])) *
+		                    Matrix4_<T>::translate(-c1);
+		    for (int i = 0; i < points1.length(); i++)
+		    {
+			    auto p = h * points1[i] - points2[i];
+			    y[2 * i] = p.x;
+			    y[2 * i + 1] = p.y;
+		    }
+		    return y;
+	    },
+	    Matrix_<T>{ aa.x, aa.y, aa.z }, { -steps });
+
+	return Matrix4_<T>::translate(c2) * Matrix4_<T>::rotate(Vec3_<T>(x[0], x[1], x[2])) * Matrix4_<T>::translate(-c1);
 }
 
 /**
