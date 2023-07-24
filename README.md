@@ -11,13 +11,11 @@ Currently available functions (may change in the future):
 
 * **fitPlane**: fits a plane to a set of 3D points and returns it as a point and normal
 
-* **fitCircle**: fits a circle to a set of 2D points
+* **fitCircle**: fits a circle to a set of 2D or 3D points
 
 * **findAffineTransform**: Estimates the affine transform between two sets of 2D points
 
-* **findRigidTransform**: Estimates the rigid transform between two sets of 2D points
-
-* **findRigidTransform**: Estimates the rigid transform between two sets of 3D points
+* **findRigidTransform**: Estimates the rigid transform between two sets of 2D or 3D points
 
 * **findHomography**: Computes a perspective transform between two sets of 2D points
 
@@ -25,7 +23,7 @@ Currently available functions (may change in the future):
 
 * **fitPoly**: fits a bivariate polynomial z=f(x,y) to a set of 3D points and returns its coefficients
 
-
+* **polynomial**: evaluates a polynomial (single variable or bivariate)
 
 Can easily be included using CMake in other projects where ASL is already. For example:
 
@@ -33,7 +31,7 @@ Can easily be included using CMake in other projects where ASL is already. For e
 
 ```cmake
 include(FetchContent)
-FetchContent_Declare(aslpoints URL https://github.com/aslze/aslpoints/archive/1.1.zip)
+FetchContent_Declare(aslpoints URL https://github.com/aslze/aslpoints/archive/1.2.zip)
 FetchContent_MakeAvailable(aslpoints)
 target_link_libraries(myprogram asls aslpoints)
 ```
