@@ -292,7 +292,7 @@ Matrix4_<T> findRigidTransform(const Array<Vec3_<T>>& points1, const Array<Vec3_
 		    }
 		    return y;
 	    },
-	    Matrix_<T>{ aa.x, aa.y, aa.z }, { -steps });
+	    Matrix_<T>{ aa.x, aa.y, aa.z }, { steps });
 
 	return Matrix4_<T>::translate(c2) * Matrix4_<T>::rotate(Vec3_<T>(x[0], x[1], x[2])) * Matrix4_<T>::translate(-c1);
 }
