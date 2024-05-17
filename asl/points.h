@@ -1,4 +1,4 @@
-// Copyright(c) 1999-2023 aslze
+// Copyright(c) 1999-2024 aslze
 // Licensed under the MIT License (http://opensource.org/licenses/MIT)
 
 #ifndef ASL_POINTS_H
@@ -36,6 +36,48 @@ asl::Vec3_<T> fitCircle(const asl::Array<asl::Vec2_<T>>& points)
 	asl::Matrix_<T> a = solve(A, b);
 
 	return asl::Vec3_<T>(a[0], a[1], sqrt(a[2] + sqr(a[0]) + sqr(a[1])));
+}
+/**
+ * Fits an ellipse to a set of points and returns it as {cx, cy, a, b, angle}
+ */
+template<class T>
+asl::Array<T> fitEllipse(const asl::Array<asl::Vec2_<T>>& points)
+{
+	asl::Array<T> e(5, T(0));
+	if (points.length() < 5)
+	{
+		return e;
+	}
+	asl::Matrix_<T> A(points.length(), 5);
+	asl::Matrix_<T> b(points.length(), 1);
+	for (int i = 0; i < points.length(); i++)
+	{
+		A(i, 0) = sqr(points[i].x);
+		A(i, 1) = points[i].x * points[i].y;
+		A(i, 2) = points[i].x;
+		A(i, 3) = points[i].y;
+		A(i, 4) = 1;
+		b(i, 0) = -sqr(points[i].y);
+	}
+
+	auto a = solve(A, b);
+
+	T d = sqr(a[1]) - 4 * a[0];
+	if (d == 0)
+		return e;
+	T k1 = 2 * (a[0] * sqr(a[3]) + sqr(a[2]) - a[1] * a[2] * a[3] + (sqr(a[1]) - 4 * a[0]) * a[4]);
+	T k2 = sqrt(sqr(a[0] - 1) + sqr(a[1]));
+	T q = T(1) / d;
+
+	e = { (2 * a[2] - a[1] * a[3]) * q, (2 * a[0] * a[3] - a[1] * a[2]) * q, T(-sqrt(k1 * (a[0] + 1 + k2))) * q,
+		  T(-sqrt(k1 * (a[0] + 1 - k2))) * q, T(0.5) * (T)atan2(-a[1], 1 - a[0]) };
+
+	if (e[2] < e[3])
+	{
+		swap(e[2], e[3]);
+		e[4] += T(PI) / 2;
+	}
+	return e;
 }
 
 /**
@@ -277,7 +319,7 @@ Matrix4_<T> findRigidTransform(const Array<Vec3_<T>>& points1, const Array<Vec3_
 	Matrix4_<T> m = orthonormalize(Matrix4_<T>(x[0], x[1], x[2], x[3], //
 	                                           x[4], x[5], x[6], x[7], //
 	                                           x[8], x[9], x[10], x[11]));
-	
+
 	auto aa = m.axisAngle();
 	x = solveZero(
 	    [&](const Matrix_<T>& x) {

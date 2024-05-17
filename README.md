@@ -13,6 +13,8 @@ Currently available functions (may change in the future):
 
 * **fitCircle**: fits a circle to a set of 2D or 3D points
 
+* **fitEllipse**: fits an ellipse to a set of 2D points
+
 * **findAffineTransform**: Estimates the affine transform between two sets of 2D points
 
 * **findRigidTransform**: Estimates the rigid transform between two sets of 2D or 3D points
