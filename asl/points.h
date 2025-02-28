@@ -1,4 +1,4 @@
-// Copyright(c) 1999-2024 aslze
+// Copyright(c) 1999-2025 aslze
 // Licensed under the MIT License (http://opensource.org/licenses/MIT)
 
 #ifndef ASL_POINTS_H
@@ -23,19 +23,25 @@ asl::Vec3_<T> fitCircle(const asl::Array<asl::Vec2_<T>>& points)
 		asl::Vec2_<T> c = (points[0] + points[1]) / 2;
 		return asl::Vec3_<T>(c.x, c.y, (points[0] - c).length());
 	}
+
+	asl::Vec2_<T> p0(0, 0);
+	for (int i = 0; i < points.length(); i++)
+		p0 += points[i];
+	p0 /= T(points.length());
+
 	asl::Matrix_<T> A(points.length(), 3);
 	asl::Matrix_<T> b(points.length(), 1);
 	for (int i = 0; i < points.length(); i++)
 	{
-		A(i, 0) = 2 * points[i].x;
-		A(i, 1) = 2 * points[i].y;
+		A(i, 0) = 2 * (points[i].x - p0.x);
+		A(i, 1) = 2 * (points[i].y - p0.y);
 		A(i, 2) = 1;
-		b(i, 0) = sqr(points[i].x) + sqr(points[i].y);
+		b(i, 0) = sqr(points[i].x - p0.x) + sqr(points[i].y - p0.y);
 	}
 
 	asl::Matrix_<T> a = solve(A, b);
 
-	return asl::Vec3_<T>(a[0], a[1], sqrt(a[2] + sqr(a[0]) + sqr(a[1])));
+	return asl::Vec3_<T>(a[0] + p0.x, a[1] + p0.y, sqrt(a[2] + sqr(a[0]) + sqr(a[1])));
 }
 /**
  * Fits an ellipse to a set of points and returns it as {cx, cy, a, b, angle}
@@ -45,19 +51,23 @@ asl::Array<T> fitEllipse(const asl::Array<asl::Vec2_<T>>& points)
 {
 	asl::Array<T> e(5, T(0));
 	if (points.length() < 5)
-	{
 		return e;
-	}
+
+	asl::Vec2_<T> p0(0, 0);
+	for (int i = 0; i < points.length(); i++)
+		p0 += points[i];
+	p0 /= T(points.length());
+
 	asl::Matrix_<T> A(points.length(), 5);
 	asl::Matrix_<T> b(points.length(), 1);
 	for (int i = 0; i < points.length(); i++)
 	{
-		A(i, 0) = sqr(points[i].x);
-		A(i, 1) = points[i].x * points[i].y;
-		A(i, 2) = points[i].x;
-		A(i, 3) = points[i].y;
+		A(i, 0) = sqr(points[i].x - p0.x);
+		A(i, 1) = (points[i].x - p0.x) * (points[i].y - p0.y);
+		A(i, 2) = points[i].x - p0.x;
+		A(i, 3) = points[i].y - p0.y;
 		A(i, 4) = 1;
-		b(i, 0) = -sqr(points[i].y);
+		b(i, 0) = -sqr(points[i].y - p0.y);
 	}
 
 	auto a = solve(A, b);
@@ -69,14 +79,15 @@ asl::Array<T> fitEllipse(const asl::Array<asl::Vec2_<T>>& points)
 	T k2 = sqrt(sqr(a[0] - 1) + sqr(a[1]));
 	T q = T(1) / d;
 
-	e = { (2 * a[2] - a[1] * a[3]) * q, (2 * a[0] * a[3] - a[1] * a[2]) * q, T(-sqrt(k1 * (a[0] + 1 + k2))) * q,
-		  T(-sqrt(k1 * (a[0] + 1 - k2))) * q, T(0.5) * (T)atan2(-a[1], 1 - a[0]) };
+	e = { p0.x + (2 * a[2] - a[1] * a[3]) * q, p0.y + (2 * a[0] * a[3] - a[1] * a[2]) * q,
+		  T(-sqrt(k1 * (a[0] + 1 + k2))) * q, T(-sqrt(k1 * (a[0] + 1 - k2))) * q, (T)atan2(-a[1], 1 - a[0]) / 2 };
 
 	if (e[2] < e[3])
 	{
 		swap(e[2], e[3]);
 		e[4] += T(PI) / 2;
 	}
+
 	return e;
 }
 
@@ -97,7 +108,7 @@ asl::Array<T> fitPlaneXY(const asl::Array<asl::Vec3_<T>>& points)
 		b(i, 0) = points[i].z;
 	}
 
-	return solve(A, b).data();
+	return solve(A, b).array();
 }
 
 /**

@@ -2,7 +2,7 @@
 
 Simple experimental functions working on 2D and 3D point sets to fit planes, estimate geometric transforms, etc.
 
-It is header-only currently. Requires the [ASL](https://github.com/aslze/asl) 1.11.8+ library.
+It is header-only currently. Requires the [ASL](https://github.com/aslze/asl) 1.11.10+ library.
 
 
 Currently available functions (may change in the future):
