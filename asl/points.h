@@ -43,6 +43,7 @@ asl::Vec3_<T> fitCircle(const asl::Array<asl::Vec2_<T>>& points)
 
 	return asl::Vec3_<T>(a[0] + p0.x, a[1] + p0.y, sqrt(a[2] + sqr(a[0]) + sqr(a[1])));
 }
+
 /**
  * Fits an ellipse to a set of points and returns it as {cx, cy, a, b, angle}
  */
@@ -89,6 +90,39 @@ asl::Array<T> fitEllipse(const asl::Array<asl::Vec2_<T>>& points)
 	}
 
 	return e;
+}
+
+/**
+ * Fits a sphere to a set of 3D points (> 3) and returns its center and radius as Vec4(cx, cy, cz, r)
+ */
+template<class T>
+asl::Vec4_<T> fitShpere(const asl::Array<asl::Vec3_<T>>& points)
+{
+	if (points.length() == 2)
+	{
+		asl::Vec3_<T> c = (points[0] + points[1]) / 2;
+		return asl::Vec4_<T>(c.x, c.y, c.z, (points[0] - c).length());
+	}
+
+	asl::Vec3_<T> p0(0, 0, 0);
+	for (int i = 0; i < points.length(); i++)
+		p0 += points[i];
+	p0 /= T(points.length());
+
+	asl::Matrix_<T> A(points.length(), 4);
+	asl::Matrix_<T> b(points.length(), 1);
+	for (int i = 0; i < points.length(); i++)
+	{
+		A(i, 0) = 2 * (points[i].x - p0.x);
+		A(i, 1) = 2 * (points[i].y - p0.y);
+		A(i, 2) = 2 * (points[i].z - p0.z);
+		A(i, 3) = 1;
+		b(i, 0) = sqr(points[i].x - p0.x) + sqr(points[i].y - p0.y) + sqr(points[i].z - p0.z);
+	}
+
+	asl::Matrix_<T> a = solve(A, b);
+
+	return asl::Vec4_<T>(a[0] + p0.x, a[1] + p0.y, a[2] + p0.z, sqrt(a[3] + sqr(a[0]) + sqr(a[1]) + sqr(a[2])));
 }
 
 /**
