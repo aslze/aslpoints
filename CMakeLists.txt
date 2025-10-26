@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4...3.9)
+cmake_minimum_required(VERSION 3.4...3.14)
 
 project(aslpoints)
 
@@ -9,7 +9,7 @@ if(NOT TARGET asls)
 	if(NOT TARGET asls)
 		cmake_minimum_required(VERSION 3.14...3.24)
 		include(FetchContent)
-		FetchContent_Declare(asl URL https://github.com/aslze/asl/archive/1.11.13.zip)
+		FetchContent_Declare(asl URL https://github.com/aslze/asl/archive/1.11.14.zip)
 		FetchContent_MakeAvailable(asl)
 	endif()
 endif()
@@ -23,6 +23,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
 	set(SRC
 		asl/points.h
+		asl/sdf2d.h
 		demo.cpp
 	)
 
