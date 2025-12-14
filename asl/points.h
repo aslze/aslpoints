@@ -96,7 +96,7 @@ asl::Array<T> fitEllipse(const asl::Array<asl::Vec2_<T>>& points)
  * Fits a sphere to a set of 3D points (> 3) and returns its center and radius as Vec4(cx, cy, cz, r)
  */
 template<class T>
-asl::Vec4_<T> fitShpere(const asl::Array<asl::Vec3_<T>>& points)
+asl::Vec4_<T> fitSphere(const asl::Array<asl::Vec3_<T>>& points)
 {
 	if (points.length() == 2)
 	{
@@ -331,33 +331,63 @@ Matrix4_<T> findRigidTransform(const Array<Vec3_<T>>& points1, const Array<Vec3_
 	if (points1.length() != points2.length())
 		return Matrix4_<T>::identity();
 	Vec3_<T> c1(0, 0, 0), c2(0, 0, 0);
-	for (int i = 0; i < points1.length(); i++)
+	int      n = points1.length();
+	for (int i = 0; i < n; i++)
 	{
 		c1 += points1[i];
 		c2 += points2[i];
 	}
-	c1 /= (T)points1.length();
-	c2 /= (T)points2.length();
+	c1 /= (T)n;
+	c2 /= (T)n;
 
-	Matrix_<T> A(points1.length() * 3, 12, T(0));
-	Matrix_<T> b(points1.length() * 3);
-	for (int i = 0; i < points1.length(); i++)
+	int i1 = 0, i2 = 1, i3 = 2;
+	T   d1 = T(0);
+	for (int i = 1; i < n; i++)
 	{
-		A(3 * i, 0) = points1[i].x - c1.x;
-		A(3 * i, 1) = points1[i].y - c1.y;
-		A(3 * i, 2) = points1[i].z - c1.z;
+		T d = (points1[i1] - points1[i]).length2();
+		if (d > d1)
+		{
+			d1 = d;
+			i2 = i;
+		}
+	}
+	T d2 = T(0);
+	Vec3_<T> v1 = points1[i2] - points1[i1];
+	for (int i = 1; i < n; i++)
+	{
+		T d = (v1 ^ (points1[i] - points1[i1])).length2();
+		if (d > d2)
+		{
+			d2 = d;
+			i3 = i;
+		}
+	}
+
+	Vec3_<T> pn1 = points1[i1] + ((points1[i2] - points1[i1]) ^ (points1[i3] - points1[i1])).normalized() * sqrt(d1);
+	Vec3_<T> pn2 = points2[i1] + ((points2[i2] - points2[i1]) ^ (points2[i3] - points2[i1])).normalized() * sqrt(d1);
+
+	Vec3_<T> pts1[] = { points1[i1], points1[i2], points1[i3], pn1 };
+	Vec3_<T> pts2[] = { points2[i1], points2[i2], points2[i3], pn2 };
+
+	Matrix_<T> A(4 * 3, 12, T(0));
+	Matrix_<T> b(4 * 3);
+	for (int i = 0; i < 4; i++)
+	{
+		A(3 * i, 0) = pts1[i].x - c1.x;
+		A(3 * i, 1) = pts1[i].y - c1.y;
+		A(3 * i, 2) = pts1[i].z - c1.z;
 		A(3 * i, 3) = 1;
-		A(3 * i + 1, 4) = points1[i].x - c1.x;
-		A(3 * i + 1, 5) = points1[i].y - c1.y;
-		A(3 * i + 1, 6) = points1[i].z - c1.z;
+		A(3 * i + 1, 4) = pts1[i].x - c1.x;
+		A(3 * i + 1, 5) = pts1[i].y - c1.y;
+		A(3 * i + 1, 6) = pts1[i].z - c1.z;
 		A(3 * i + 1, 7) = 1;
-		A(3 * i + 2, 8) = points1[i].x - c1.x;
-		A(3 * i + 2, 9) = points1[i].y - c1.y;
-		A(3 * i + 2, 10) = points1[i].z - c1.z;
+		A(3 * i + 2, 8) = pts1[i].x - c1.x;
+		A(3 * i + 2, 9) = pts1[i].y - c1.y;
+		A(3 * i + 2, 10) = pts1[i].z - c1.z;
 		A(3 * i + 2, 11) = 1;
-		b(3 * i, 0) = points2[i].x - c2.x;
-		b(3 * i + 1, 0) = points2[i].y - c2.y;
-		b(3 * i + 2, 0) = points2[i].z - c2.z;
+		b(3 * i, 0) = pts2[i].x - c2.x;
+		b(3 * i + 1, 0) = pts2[i].y - c2.y;
+		b(3 * i + 2, 0) = pts2[i].z - c2.z;
 	}
 
 	Matrix_<T>  x = solve(A, b);
@@ -365,17 +395,21 @@ Matrix4_<T> findRigidTransform(const Array<Vec3_<T>>& points1, const Array<Vec3_
 	                                           x[4], x[5], x[6], x[7], //
 	                                           x[8], x[9], x[10], x[11]));
 
+	if (steps == 0)
+		return Matrix4_<T>::translate(c2) * m * Matrix4_<T>::translate(-c1);
+
 	auto aa = m.axisAngle();
 	x = solveZero(
 	    [&](const Matrix_<T>& x) {
-		    Matrix_<T>  y(points1.length() * 2);
+		    Matrix_<T>  y(points1.length() * 3);
 		    Matrix4_<T> h = Matrix4_<T>::translate(c2) * Matrix4_<T>::rotate(Vec3_<T>(x[0], x[1], x[2])) *
 		                    Matrix4_<T>::translate(-c1);
 		    for (int i = 0; i < points1.length(); i++)
 		    {
 			    auto p = h * points1[i] - points2[i];
-			    y[2 * i] = p.x;
-			    y[2 * i + 1] = p.y;
+			    y[3 * i] = p.x;
+			    y[3 * i + 1] = p.y;
+			    y[3 * i + 2] = p.z;
 		    }
 		    return y;
 	    },
