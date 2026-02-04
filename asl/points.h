@@ -1,4 +1,4 @@
-// Copyright(c) 1999-2025 aslze
+// Copyright(c) 1999-2026 aslze
 // Licensed under the MIT License (http://opensource.org/licenses/MIT)
 
 #ifndef ASL_POINTS_H
@@ -9,6 +9,7 @@
 #include <asl/Matrix3.h>
 #include <asl/Matrix4.h>
 #include <asl/Vec3.h>
+#include <asl/Vec4.h>
 
 namespace asl
 {
@@ -507,6 +508,41 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec3_<T>>& p, int deg = 2)
 }
 
 /**
+ * Computes the coefficients of trivariate polynomial that best fits the points p
+ * \return Array of coefficients [a000, a001, ..., a100, a101, ...] f(x,y,z) = sum(a[i,j,k] * x^i * y^j * z^k)
+ */
+template<class T>
+asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec4_<T>>& p, int deg = 2)
+{
+	asl::Matrix_<T> A(p.length(), (deg + 1) * (deg + 1) * (deg + 1));
+	asl::Matrix_<T> b(p.length());
+
+	for (int i = 0; i < p.length(); i++)
+	{
+		T xx = 1;
+		for (int j = 0; j < deg + 1; j++)
+		{
+			T yy = 1;
+			for (int k = 0; k < deg + 1; k++)
+			{
+				T zz = 1;
+				for (int l = 0; l < deg + 1; l++)
+				{
+					A(i, j * (deg + 1) * (deg + 1) + k * (deg + 1) + l) = xx * yy * zz;
+					zz *= p[i].z;
+				}
+				yy *= p[i].y;
+			}
+			xx *= p[i].x;
+		}
+		b(i, 0) = p[i].w;
+	}
+
+	return solve(A, b);
+}
+
+
+/**
  * Evaluates polynomial at (x)
  */
 template<class T>
@@ -543,6 +579,33 @@ T polynomial(const asl::Matrix_<T>& a, T x, T y)
 	}
 
 	return z;
+}
+
+/**
+ * Evaluates a trivariate polynomial at (x, y, z)
+ */
+template<class T>
+T polynomial(const asl::Matrix_<T>& a, T x, T y, T z)
+{
+	int deg = (int)cbrt(a.length()) - 1;
+	T   w = 0, xx = 1;
+	for (int i = 0; i < deg + 1; i++)
+	{
+		T yy = 1;
+		for (int j = 0; j < deg + 1; j++)
+		{
+			T zz = 1;
+			for (int k = 0; k < deg + 1; k++)
+			{
+				w += a[i * (deg + 1) * (deg + 1) + j * (deg + 1) + k] * xx * yy * zz;
+				zz *= z;
+			}
+			yy *= y;
+		}
+		xx *= x;
+	}
+
+	return w;
 }
 
 }
