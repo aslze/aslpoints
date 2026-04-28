@@ -147,6 +147,84 @@ asl::Array<T> fitPlaneXY(const asl::Array<asl::Vec3_<T>>& points)
 }
 
 /**
+ * Fits a plane to a set of 3D points using PCA and returns it as [cx, cy, cz, nx, ny, nz]
+ * where (cx, cy, cz) is the centroid point on the plane and (nx, ny, nz) is the unit normal vector
+ */
+template<class T>
+asl::Array<T> fitPlane3D(const asl::Array<asl::Vec3_<T>>& points)
+{
+	if (points.length() < 3)
+		return asl::Array<T>(6, T(0));
+
+	if (points.length() == 3)
+	{
+		Vec3_<T> edge1 = points[1] - points[0];
+		Vec3_<T> edge2 = points[2] - points[0];
+		Vec3_<T> normal = edge1 ^ edge2;
+		T        len = normal.length();
+		if (len > T(1e-10))
+			normal /= len;
+		else
+			normal = Vec3_<T>(0, 0, 1);
+		if (normal.z < 0)
+			normal = -normal;
+		return asl::Array<T>{ points[0].x, points[0].y, points[0].z, normal.x, normal.y, normal.z };
+	}
+
+	// Compute centroid
+	Vec3_<T> centroid(0, 0, 0);
+	for (int i = 0; i < points.length(); i++)
+		centroid += points[i];
+	centroid /= T(points.length());
+
+	// Build covariance matrix
+	T cxx = 0, cxy = 0, cxz = 0, cyy = 0, cyz = 0, czz = 0;
+	for (int i = 0; i < points.length(); i++)
+	{
+		Vec3_<T> p = points[i] - centroid;
+		cxx += p.x * p.x;
+		cxy += p.x * p.y;
+		cxz += p.x * p.z;
+		cyy += p.y * p.y;
+		cyz += p.y * p.z;
+		czz += p.z * p.z;
+	}
+
+	// Find eigenvector corresponding to smallest eigenvalue (normal to best-fit plane)
+	// Using power iteration to find the eigenvector of the smallest eigenvalue
+	Vec3_<T> normal(1, 1, 1);
+
+	// Create matrix for inverse iteration (covariance matrix + small identity)
+	// T shift = (cxx + cyy + czz) + T(1e-3);
+	T shift = (cxx + cyy + czz) * T(1.000001);
+
+	for (int it = 0; it < 70; it++)
+	{
+		Vec3_<T> v = normal;
+
+		// Solve (C + shift*I) * x = v using simple method.
+		Vec3_<T> cv((cxx - shift) * v.x + cxy * v.y + cxz * v.z, //
+		            cxy * v.x + (cyy - shift) * v.y + cyz * v.z, //
+		            cxz * v.x + cyz * v.y + (czz - shift) * v.z);
+
+		T len = cv.length();
+		if (len > T(1e-10))
+			normal = cv / len;
+		else
+		{
+			normal = Vec3_<T>(0, 0, 1);
+			continue;
+		}
+	}
+
+	// Ensure normal points in a consistent direction
+	if (normal.z < 0)
+		normal = -normal;
+
+	return asl::Array<T>{ centroid.x, centroid.y, centroid.z, normal.x, normal.y, normal.z };
+}
+
+/**
  * Fits a plane to a set of 3D points (returns a point and a normal [x, y, z, nx, ny, nz])
  */
 template<class T>
@@ -296,6 +374,39 @@ asl::Matrix3_<T> findAffineTransform(const asl::Array<asl::Vec2_<T>>& points1, c
 	                        x[3], x[4], x[5]);
 }
 
+template<class T>
+Matrix4_<T> findAffineTransform(const Array<Vec3_<T>>& points1, const Array<Vec3_<T>>& points2)
+{
+	if (points1.length() != points2.length())
+		return Matrix4_<T>::identity();
+	Matrix_<T> A(points1.length() * 3, 12, T(0));
+	Matrix_<T> b(points1.length() * 3);
+
+	for (int i = 0; i < points1.length(); i++)
+	{
+		A(3 * i, 0) = points1[i].x;
+		A(3 * i, 1) = points1[i].y;
+		A(3 * i, 2) = points1[i].z;
+		A(3 * i, 3) = 1;
+		A(3 * i + 1, 4) = points1[i].x;
+		A(3 * i + 1, 5) = points1[i].y;
+		A(3 * i + 1, 6) = points1[i].z;
+		A(3 * i + 1, 7) = 1;
+		A(3 * i + 2, 8) = points1[i].x;
+		A(3 * i + 2, 9) = points1[i].y;
+		A(3 * i + 2, 10) = points1[i].z;
+		A(3 * i + 2, 11) = 1;
+		b(3 * i, 0) = points2[i].x;
+		b(3 * i + 1, 0) = points2[i].y;
+		b(3 * i + 2, 0) = points2[i].z;
+	}
+
+	Matrix_<T> x = solve(A, b);
+	return Matrix4_<T>(x[0], x[1], x[2], x[3], //
+	                   x[4], x[5], x[6], x[7], //
+	                   x[8], x[9], x[10], x[11]);
+}
+
 /**
  * Estimates the rigid transform between two sets of 2D points
  */
@@ -352,7 +463,7 @@ Matrix4_<T> findRigidTransform(const Array<Vec3_<T>>& points1, const Array<Vec3_
 			i2 = i;
 		}
 	}
-	T d2 = T(0);
+	T        d2 = T(0);
 	Vec3_<T> v1 = points1[i2] - points1[i1];
 	for (int i = 1; i < n; i++)
 	{
@@ -540,7 +651,6 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec4_<T>>& p, int deg = 2)
 
 	return solve(A, b);
 }
-
 
 /**
  * Evaluates polynomial at (x)
