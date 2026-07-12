@@ -344,6 +344,38 @@ static Pair<Vec3_<T>> fitCircle(const Array<Vec3_<T>>& points)
 }
 
 /**
+ * Fits a line to a set of 2D points and returns it as {point, direction}
+ */
+template<class T>
+Pair<Vec2_<T>> fitLine(const asl::Array<asl::Vec2_<T>>& points)
+{
+	if (points.length() < 2)
+		return { Vec2_<T>(0, 0), Vec2_<T>(1, 0) };
+	asl::Vec2_<T> p0(0, 0);
+	for (int i = 0; i < points.length(); i++)
+		p0 += points[i];
+	p0 /= T(points.length());
+	T cxx = 0, cxy = 0, cyy = 0;
+	for (int i = 0; i < points.length(); i++)
+	{
+		Vec2_<T> p = points[i] - p0;
+		cxx += p.x * p.x;
+		cxy += p.x * p.y;
+		cyy += p.y * p.y;
+	}
+	T theta = atan2(2 * cxy, cxx - cyy) / 2;
+	return { Vec2_<T>(p0.x, p0.y), Vec2_<T>(cos(theta), sin(theta)) };
+}
+
+template<class T>
+T distancePointLine(const asl::Vec2_<T>& p, const asl::Vec2_<T>& p0, const asl::Vec2_<T>& dir)
+{
+	Vec2_<T> v = p - p0;
+	Vec2_<T> q = p0 + (v * dir) * dir;
+	return (p - q).length();
+}
+
+/**
  * Estimates the affine transform between two sets of 2D points
  */
 template<class T>

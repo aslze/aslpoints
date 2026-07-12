@@ -13,6 +13,8 @@ Currently available functions (may change in the future):
 
 * **fitPlane3D**: same with a different method (only one might survive)
 
+* **fitLine**: fits a line to a set of 2D points
+
 * **fitCircle**: fits a circle to a set of 2D or 3D points
 
 * **fitEllipse**: fits an ellipse to a set of 2D points
@@ -35,7 +37,7 @@ Can easily be included using CMake in other projects where ASL is already. For e
 
 ```cmake
 include(FetchContent)
-FetchContent_Declare(aslpoints URL https://github.com/aslze/aslpoints/archive/1.6.0.zip)
+FetchContent_Declare(aslpoints URL https://github.com/aslze/aslpoints/archive/1.7.0.zip)
 FetchContent_MakeAvailable(aslpoints)
 target_link_libraries(myprogram asls aslpoints)
 ```
