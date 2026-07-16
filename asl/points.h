@@ -151,7 +151,7 @@ asl::Array<T> fitPlaneXY(const asl::Array<asl::Vec3_<T>>& points)
  * where (cx, cy, cz) is the centroid point on the plane and (nx, ny, nz) is the unit normal vector
  */
 template<class T>
-asl::Array<T> fitPlane3D(const asl::Array<asl::Vec3_<T>>& points)
+asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 {
 	if (points.length() < 3)
 		return asl::Array<T>(6, T(0));
@@ -226,11 +226,20 @@ asl::Array<T> fitPlane3D(const asl::Array<asl::Vec3_<T>>& points)
 	return asl::Array<T>{ centroid.x, centroid.y, centroid.z, normal.x, normal.y, normal.z };
 }
 
+// Alias for old version compatibility
+template<class T>
+asl::Array<T> fitPlane3D(const asl::Array<asl::Vec3_<T>>& points)
+{
+	return fitPlane(points);
+}
+
+
 /**
  * Fits a plane to a set of 3D points (returns a point and a normal [x, y, z, nx, ny, nz])
+ * \deprecated Use fitPlane() instead
  */
 template<class T>
-asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
+asl::Array<T> fitPlaneXYZ(const asl::Array<asl::Vec3_<T>>& points)
 {
 	Matrix_<T> A(points.length(), 3);
 	Matrix_<T> b(points.length(), 1);
@@ -375,6 +384,39 @@ T distancePointLine(const asl::Vec2_<T>& p, const asl::Vec2_<T>& p0, const asl::
 	Vec2_<T> v = p - p0;
 	Vec2_<T> q = p0 + (v * dir) * dir;
 	return (p - q).length();
+}
+
+template<class T>
+Pair<Vec3_<T>> fitLine(const asl::Array<asl::Vec3_<T>>& points)
+{
+	if (points.length() < 2)
+		return { Vec3_<T>(0, 0, 0), Vec3_<T>(1, 0, 0) };
+
+	if (points.length() == 2)
+		return { points[0], (points[1] - points[0]).normalized() };
+
+	asl::Vec3_<T> p0(0, 0, 0);
+	for (int i = 0; i < points.length(); i++)
+		p0 += points[i];
+	p0 /= T(points.length());
+
+	Vec3_<T> dir(1, 0, 0);
+
+	for (int it = 0; it < 20; it++)
+	{
+		Vec3_<T> dir2(0, 0, 0);
+		for (int i = 0; i < points.length(); i++)
+		{
+			Vec3_<T> v = points[i] - p0;
+			dir2 += (v * dir) * v;
+		}
+		dir2 = dir2.normalized();
+		if ((dir2 - dir).length() < T(1e-9))
+			break;
+		dir = dir2;
+	}
+
+	return { p0, dir };
 }
 
 template<class T>
