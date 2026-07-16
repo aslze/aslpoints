@@ -190,34 +190,36 @@ asl::Array<T> fitPlane3D(const asl::Array<asl::Vec3_<T>>& points)
 		czz += p.z * p.z;
 	}
 
-	// Find eigenvector corresponding to smallest eigenvalue (normal to best-fit plane)
-	// Using power iteration to find the eigenvector of the smallest eigenvalue
 	Vec3_<T> normal(1, 1, 1);
+	normal = normal.normalized();
 
-	// Create matrix for inverse iteration (covariance matrix + small identity)
-	// T shift = (cxx + cyy + czz) + T(1e-3);
-	T shift = (cxx + cyy + czz) * T(1.000001);
+	T shift = cxx + cyy + czz;
 
-	for (int it = 0; it < 70; it++)
+	Matrix3_<T> C(cxx, cxy, cxz, //
+	              cxy, cyy, cyz, //
+	              cxz, cyz, czz);
+
+	Matrix3_<T> B = shift * Matrix3_<T>::identity() - C;
+
+	for (int it = 0; it < 80; it++)
 	{
 		Vec3_<T> v = normal;
 
-		// Solve (C + shift*I) * x = v using simple method.
-		Vec3_<T> cv((cxx - shift) * v.x + cxy * v.y + cxz * v.z, //
-		            cxy * v.x + (cyy - shift) * v.y + cyz * v.z, //
-		            cxz * v.x + cyz * v.y + (czz - shift) * v.z);
+		auto cv = B * v;
 
 		T len = cv.length();
 		if (len > T(1e-10))
-			normal = cv / len;
+			cv = cv / len;
 		else
 		{
-			normal = Vec3_<T>(0, 0, 1);
-			continue;
+			cv = Vec3_<T>(0, 0, 1);
 		}
+
+		if (min((cv - normal).length(), (cv + normal).length()) < T(1e-9))
+			break;
+		normal = cv;
 	}
 
-	// Ensure normal points in a consistent direction
 	if (normal.z < 0)
 		normal = -normal;
 
@@ -374,6 +376,15 @@ T distancePointLine(const asl::Vec2_<T>& p, const asl::Vec2_<T>& p0, const asl::
 	Vec2_<T> q = p0 + (v * dir) * dir;
 	return (p - q).length();
 }
+
+template<class T>
+T distancePointLine(const asl::Vec3_<T>& p, const asl::Vec3_<T>& p0, const asl::Vec3_<T>& dir)
+{
+	Vec3_<T> v = p - p0;
+	Vec3_<T> q = p0 + (v * dir) * dir;
+	return (p - q).length();
+}
+
 
 /**
  * Estimates the affine transform between two sets of 2D points
