@@ -190,7 +190,7 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 		czz += p.z * p.z;
 	}
 
-	Vec3_<T> normal(1, 1, 1);
+	Vec3_<T> normal(1, 0, 0);
 	normal = normal.normalized();
 
 	T shift = cxx + cyy + czz;
@@ -201,7 +201,42 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 
 	Matrix3_<T> B = shift * Matrix3_<T>::identity() - C;
 
-	for (int it = 0; it < 80; it++)
+	{
+		Vec3_<T> c1(0, 0, 0);
+		int      n = points.length();
+		for (int i = 0; i < n; i++)
+		{
+			c1 += points[i];
+		}
+		c1 /= (T)n;
+
+		int i1 = 0, i2 = 1, i3 = 2;
+		T   d1 = T(0);
+		for (int i = 1; i < n; i++)
+		{
+			T d = (points[i1] - points[i]).length2();
+			if (d > d1)
+			{
+				d1 = d;
+				i2 = i;
+			}
+		}
+		T        d2 = T(0);
+		Vec3_<T> v1 = points[i2] - points[i1];
+		for (int i = 1; i < n; i++)
+		{
+			T d = (v1 ^ (points[i] - points[i1])).length2();
+			if (d > d2)
+			{
+				d2 = d;
+				i3 = i;
+			}
+		}
+
+		normal = ((points[i3] - points[i1]) ^ (points[i2] - points[i1])).normalized();
+	}
+
+	for (int it = 0; it < 2500; it++)
 	{
 		Vec3_<T> v = normal;
 
@@ -214,8 +249,8 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 		{
 			cv = Vec3_<T>(0, 0, 1);
 		}
-
-		if (min((cv - normal).length(), (cv + normal).length()) < T(1e-9))
+		
+		if (min((cv - normal).length(), (cv + normal).length()) < T(1e-8))
 			break;
 		normal = cv;
 	}
