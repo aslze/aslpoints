@@ -457,8 +457,7 @@ Pair<Vec3_<T>> fitLine(const asl::Array<asl::Vec3_<T>>& points)
 template<class T>
 T distancePointLine(const asl::Vec3_<T>& p, const asl::Vec3_<T>& p0, const asl::Vec3_<T>& dir)
 {
-	Vec3_<T> v = p - p0;
-	Vec3_<T> q = p0 + (v * dir) * dir;
+	Vec3_<T> q = p0 + ((p - p0) * dir) * dir;
 	return (p - q).length();
 }
 
