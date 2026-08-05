@@ -23,6 +23,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
 	set(SRC
 		asl/points.h
+		asl/pointsR.h
 		asl/sdf2d.h
 		demo.cpp
 	)
@@ -30,5 +31,20 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 	add_executable(${TARGET} ${SRC})
 
 	target_link_libraries(${TARGET} asls aslpoints)
+
+	set(TARGET tests)
+
+	set(SRC
+		tests.cpp
+	)
+
+	add_executable(${TARGET} ${SRC})
+
+	target_compile_definitions(${TARGET} PRIVATE ASL_TESTS)
+	target_link_libraries(${TARGET} asls aslpoints)
+
+	enable_testing()
+
+	add_test(NAME fitting COMMAND ${TARGET})
 
 endif()
