@@ -53,6 +53,10 @@ R fitR(const asl::Array<TP>& points, T threshold, int ms, F fit, F2 dist, R defl
 	return best;
 }
 
+/**
+ * Fits a plane over the XY plane to a set of 3D points using RANSAC. The plane is represented as a 3D vector (a, b, c)
+ * such that z = ax + by + c.
+ */
 template<class T>
 Array<T> fitPlaneXYR(const Array<Vec3_<T>>& points, T threshold)
 {
@@ -64,6 +68,9 @@ Array<T> fitPlaneXYR(const Array<Vec3_<T>>& points, T threshold)
 	return r;
 }
 
+/**
+ * Fits a polynomial to a set of 2D points using RANSAC. The polynomial is represented as a matrix of coefficients.
+ */
 template<class T>
 Matrix_<T> fitPolyR(const Array<Vec2_<T>>& points, int deg, T threshold)
 {
@@ -74,6 +81,10 @@ Matrix_<T> fitPolyR(const Array<Vec2_<T>>& points, int deg, T threshold)
 	return r;
 }
 
+/**
+ * Fits a polynomial surface to a set of 3D points using RANSAC. The polynomial is represented as a matrix of
+ * coefficients.
+ */
 template<class T>
 Matrix_<T> fitPolyR(const Array<Vec3_<T>>& points, int deg, T threshold)
 {
@@ -85,6 +96,9 @@ Matrix_<T> fitPolyR(const Array<Vec3_<T>>& points, int deg, T threshold)
 	return r;
 }
 
+/**
+ * Fits a circle to a set of 2D points using RANSAC. The circle is represented as a 3D vector (x, y, radius).
+ */
 template<class T>
 Vec3_<T> fitCircleR(const Array<Vec2_<T>>& points, T threshold)
 {
@@ -98,6 +112,9 @@ Vec3_<T> fitCircleR(const Array<Vec2_<T>>& points, T threshold)
 	return r;
 }
 
+/**
+ * Fits a sphere to a set of 3D points using RANSAC. The sphere is represented as a 4D vector (x, y, z, radius).
+ */
 template<class T>
 Vec4_<T> fitSphereR(const Array<Vec3_<T>>& points, T threshold)
 {
@@ -112,6 +129,9 @@ Vec4_<T> fitSphereR(const Array<Vec3_<T>>& points, T threshold)
 	return r;
 }
 
+/**
+ * Fits a line to a set of 2D points using RANSAC. The line is represented as a pair of points (start and end).
+ */
 template<class T>
 Pair<Vec2_<T>> fitLineR(const Array<Vec2_<T>>& points, T threshold)
 {
@@ -122,6 +142,9 @@ Pair<Vec2_<T>> fitLineR(const Array<Vec2_<T>>& points, T threshold)
 	return r;
 }
 
+/**
+ * Fits a line to a set of 3D points using RANSAC. The line is represented as a pair of points (start and end).
+ */
 template<class T>
 Pair<Vec3_<T>> fitLineR(const Array<Vec3_<T>>& points, T threshold)
 {
@@ -132,5 +155,65 @@ Pair<Vec3_<T>> fitLineR(const Array<Vec3_<T>>& points, T threshold)
 
 	return r;
 }
+
+/**
+ * Finds a rigid transform between two sets of 2D points using RANSAC (low performance, will optimize later)
+ */
+template<class T>
+asl::Matrix3_<T> findRigidTransformR(const asl::Array<asl::Vec2_<T>>& points1, const asl::Array<asl::Vec2_<T>>& points2, T threshold)
+{
+	auto r = fitR(
+	    points1, threshold, 2,
+	    [&](const Array<Vec2_<T>>& sample) {
+		    Array<Vec2_<T>> sample2;
+		    for (const auto& p : sample)
+		    {
+			    int idx = points1.indexOf(p);
+			    if (idx >= 0)
+				    sample2 << points2[idx];
+		    }
+		    return findRigidTransform(sample, sample2);
+	    },
+	    [&](const Matrix3_<T>& transform, const Vec2_<T>& p) {
+		    int idx = points1.indexOf(p);
+		    if (idx < 0)
+			    return T(1e10);
+		    Vec2_<T> p2 = transform * p;
+		    return (p2 - points2[idx]).norm();
+	    },
+	    Matrix3_<T>::identity());
+	return r;
+}
+
+/**
+ * Finds a rigid transform between two sets of 3D points using RANSAC (low performance, will optimize later)
+ */
+template<class T>
+asl::Matrix4_<T> findRigidTransformR(const asl::Array<asl::Vec3_<T>>& points1, const asl::Array<asl::Vec3_<T>>& points2,
+                                     T threshold)
+{
+	auto r = fitR(
+	    points1, threshold, 3,
+	    [&](const Array<Vec3_<T>>& sample) {
+		    Array<Vec3_<T>> sample2;
+		    for (const auto& p : sample)
+		    {
+			    int idx = points1.indexOf(p);
+			    if (idx >= 0)
+				    sample2 << points2[idx];
+		    }
+		    return findRigidTransform(sample, sample2);
+	    },
+	    [&](const Matrix4_<T>& transform, const Vec3_<T>& p) {
+		    int idx = points1.indexOf(p);
+		    if (idx < 0)
+			    return T(1e10);
+		    Vec3_<T> p2 = transform * p;
+		    return (p2 - points2[idx]).norm();
+	    },
+	    Matrix4_<T>::identity());
+	return r;
+}
+
 
 }
