@@ -53,6 +53,63 @@ R fitR(const asl::Array<TP>& points, T threshold, int ms, F fit, F2 dist, R defl
 	return best;
 }
 
+template<class T, class TP, class R, class F, class F2>
+R fit2R(const asl::Array<TP>& points1, const asl::Array<TP>& points2, T threshold, int ms, F fit, F2 dist, R deflt)
+{
+	Array<TP> sample1, sample2;
+	R         best;
+	int       mi = 0;
+	if (points1.length() == 0 || points1.length() != points2.length())
+		return deflt;
+
+	Random random;
+
+	for (int i = 0; i < 200; i++)
+	{
+		sample1.clear();
+		sample2.clear();
+		for (int j = 0; j < ms; j++)
+		{
+			int k = random(points1.length() - 1);
+			sample1 << points1[k];
+			sample2 << points2[k];
+		}
+		auto model = fit(sample1, sample2);
+		int  ni = 0;
+		for (int j = 0; j < points1.length(); j++)
+		{
+			if (dist(model, points1[j], points2[j]) < threshold)
+				ni++;
+		}
+		if (ni > mi)
+		{
+			mi = ni;
+			best = model;
+		}
+		if ((i > 10 && ni > points1.length() * 0.9) || (i > 2 && ni > points1.length() * 0.995))
+			break;
+	}
+
+	Array<TP> inliers1, inliers2;
+	inliers1.reserve(mi);
+	inliers2.reserve(mi);
+	for (int i = 0; i < points1.length(); i++)
+	{
+		if (dist(best, points1[i], points2[i]) < threshold)
+		{
+			inliers1 << points1[i];
+			inliers2 << points2[i];
+		}
+	}
+
+	if (mi < points1.length() * 0.10)
+		best = fit(points1, points2);
+	else
+		best = fit(inliers1, inliers2);
+
+	return best;
+}
+
 /**
  * Fits a plane over the XY plane to a set of 3D points using RANSAC. The plane is represented as a 3D vector (a, b, c)
  * such that z = ax + by + c.
@@ -157,63 +214,37 @@ Pair<Vec3_<T>> fitLineR(const Array<Vec3_<T>>& points, T threshold)
 }
 
 /**
- * Finds a rigid transform between two sets of 2D points using RANSAC (low performance, will optimize later)
+ * Finds a rigid transform between two sets of 2D points using RANSAC
  */
 template<class T>
-asl::Matrix3_<T> findRigidTransformR(const asl::Array<asl::Vec2_<T>>& points1, const asl::Array<asl::Vec2_<T>>& points2, T threshold)
+asl::Matrix3_<T> findRigidTransformR(const asl::Array<asl::Vec2_<T>>& points1, const asl::Array<asl::Vec2_<T>>& points2,
+                                     T threshold)
 {
-	auto r = fitR(
-	    points1, threshold, 2,
-	    [&](const Array<Vec2_<T>>& sample) {
-		    Array<Vec2_<T>> sample2;
-		    for (const auto& p : sample)
-		    {
-			    int idx = points1.indexOf(p);
-			    if (idx >= 0)
-				    sample2 << points2[idx];
-		    }
-		    return findRigidTransform(sample, sample2);
+	auto r = fit2R(
+	    points1, points2, threshold, 2,
+	    [](const Array<Vec2_<T>>& sample1, const Array<Vec2_<T>>& sample2) {
+		    return findRigidTransform(sample1, sample2);
 	    },
-	    [&](const Matrix3_<T>& transform, const Vec2_<T>& p) {
-		    int idx = points1.indexOf(p);
-		    if (idx < 0)
-			    return T(1e10);
-		    Vec2_<T> p2 = transform * p;
-		    return (p2 - points2[idx]).norm();
-	    },
+	    [](const Matrix3_<T>& transform, const Vec2_<T>& p1, const Vec2_<T>& p2) { return (p2 - transform * p1).norm(); },
 	    Matrix3_<T>::identity());
 	return r;
 }
 
 /**
- * Finds a rigid transform between two sets of 3D points using RANSAC (low performance, will optimize later)
+ * Finds a rigid transform between two sets of 3D points using RANSAC
  */
 template<class T>
 asl::Matrix4_<T> findRigidTransformR(const asl::Array<asl::Vec3_<T>>& points1, const asl::Array<asl::Vec3_<T>>& points2,
                                      T threshold)
 {
-	auto r = fitR(
-	    points1, threshold, 3,
-	    [&](const Array<Vec3_<T>>& sample) {
-		    Array<Vec3_<T>> sample2;
-		    for (const auto& p : sample)
-		    {
-			    int idx = points1.indexOf(p);
-			    if (idx >= 0)
-				    sample2 << points2[idx];
-		    }
-		    return findRigidTransform(sample, sample2);
+	auto r = fit2R(
+	    points1, points2, threshold, 3,
+	    [](const Array<Vec3_<T>>& sample1, const Array<Vec3_<T>>& sample2) {
+		    return findRigidTransform(sample1, sample2);
 	    },
-	    [&](const Matrix4_<T>& transform, const Vec3_<T>& p) {
-		    int idx = points1.indexOf(p);
-		    if (idx < 0)
-			    return T(1e10);
-		    Vec3_<T> p2 = transform * p;
-		    return (p2 - points2[idx]).norm();
-	    },
+	    [](const Matrix4_<T>& transform, const Vec3_<T>& p1, const Vec3_<T>& p2) { return (p2 - transform * p1).norm(); },
 	    Matrix4_<T>::identity());
 	return r;
 }
-
 
 }
