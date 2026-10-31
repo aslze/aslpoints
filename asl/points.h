@@ -1,4 +1,4 @@
-// Copyright(c) 1999-2026 aslze
+// Copyright(c) 2023-2026 aslze
 // Licensed under the MIT License (http://opensource.org/licenses/MIT)
 
 #ifndef ASL_POINTS_H
@@ -17,21 +17,21 @@ namespace asl
  * Fits a circle to a set of points and returns its center and radius as Vec3(cx, cy, r)
  */
 template<class T>
-asl::Vec3_<T> fitCircle(const asl::Array<asl::Vec2_<T>>& points)
+Vec3_<T> fitCircle(const Array<Vec2_<T>>& points)
 {
 	if (points.length() == 2)
 	{
-		asl::Vec2_<T> c = (points[0] + points[1]) / 2;
-		return asl::Vec3_<T>(c.x, c.y, (points[0] - c).length());
+		Vec2_<T> c = (points[0] + points[1]) / 2;
+		return Vec3_<T>(c.x, c.y, (points[0] - c).length());
 	}
 
-	asl::Vec2_<T> p0(0, 0);
+	Vec2_<T> p0(0, 0);
 	for (int i = 0; i < points.length(); i++)
 		p0 += points[i];
 	p0 /= T(points.length());
 
-	asl::Matrix_<T> A(points.length(), 3);
-	asl::Matrix_<T> b(points.length(), 1);
+	Matrix_<T> A(points.length(), 3);
+	Matrix_<T> b(points.length(), 1);
 	for (int i = 0; i < points.length(); i++)
 	{
 		A(i, 0) = 2 * (points[i].x - p0.x);
@@ -40,28 +40,28 @@ asl::Vec3_<T> fitCircle(const asl::Array<asl::Vec2_<T>>& points)
 		b(i, 0) = sqr(points[i].x - p0.x) + sqr(points[i].y - p0.y);
 	}
 
-	asl::Matrix_<T> a = solve(A, b);
+	Matrix_<T> a = solve(A, b);
 
-	return asl::Vec3_<T>(a[0] + p0.x, a[1] + p0.y, sqrt(a[2] + sqr(a[0]) + sqr(a[1])));
+	return Vec3_<T>(a[0] + p0.x, a[1] + p0.y, sqrt(a[2] + sqr(a[0]) + sqr(a[1])));
 }
 
 /**
  * Fits an ellipse to a set of points and returns it as {cx, cy, a, b, angle}
  */
 template<class T>
-asl::Array<T> fitEllipse(const asl::Array<asl::Vec2_<T>>& points)
+Array<T> fitEllipse(const Array<Vec2_<T>>& points)
 {
-	asl::Array<T> e(5, T(0));
+	Array<T> e(5, T(0));
 	if (points.length() < 5)
 		return e;
 
-	asl::Vec2_<T> p0(0, 0);
+	Vec2_<T> p0(0, 0);
 	for (int i = 0; i < points.length(); i++)
 		p0 += points[i];
 	p0 /= T(points.length());
 
-	asl::Matrix_<T> A(points.length(), 5);
-	asl::Matrix_<T> b(points.length(), 1);
+	Matrix_<T> A(points.length(), 5);
+	Matrix_<T> b(points.length(), 1);
 	for (int i = 0; i < points.length(); i++)
 	{
 		A(i, 0) = sqr(points[i].x - p0.x);
@@ -97,21 +97,21 @@ asl::Array<T> fitEllipse(const asl::Array<asl::Vec2_<T>>& points)
  * Fits a sphere to a set of 3D points (> 3) and returns its center and radius as Vec4(cx, cy, cz, r)
  */
 template<class T>
-asl::Vec4_<T> fitSphere(const asl::Array<asl::Vec3_<T>>& points)
+Vec4_<T> fitSphere(const Array<Vec3_<T>>& points)
 {
 	if (points.length() == 2)
 	{
-		asl::Vec3_<T> c = (points[0] + points[1]) / 2;
-		return asl::Vec4_<T>(c.x, c.y, c.z, (points[0] - c).length());
+		Vec3_<T> c = (points[0] + points[1]) / 2;
+		return Vec4_<T>(c.x, c.y, c.z, (points[0] - c).length());
 	}
 
-	asl::Vec3_<T> p0(0, 0, 0);
+	Vec3_<T> p0(0, 0, 0);
 	for (int i = 0; i < points.length(); i++)
 		p0 += points[i];
 	p0 /= T(points.length());
 
-	asl::Matrix_<T> A(points.length(), 4);
-	asl::Matrix_<T> b(points.length(), 1);
+	Matrix_<T> A(points.length(), 4);
+	Matrix_<T> b(points.length(), 1);
 	for (int i = 0; i < points.length(); i++)
 	{
 		A(i, 0) = 2 * (points[i].x - p0.x);
@@ -121,9 +121,9 @@ asl::Vec4_<T> fitSphere(const asl::Array<asl::Vec3_<T>>& points)
 		b(i, 0) = sqr(points[i].x - p0.x) + sqr(points[i].y - p0.y) + sqr(points[i].z - p0.z);
 	}
 
-	asl::Matrix_<T> a = solve(A, b);
+	Matrix_<T> a = solve(A, b);
 
-	return asl::Vec4_<T>(a[0] + p0.x, a[1] + p0.y, a[2] + p0.z, sqrt(a[3] + sqr(a[0]) + sqr(a[1]) + sqr(a[2])));
+	return Vec4_<T>(a[0] + p0.x, a[1] + p0.y, a[2] + p0.z, sqrt(a[3] + sqr(a[0]) + sqr(a[1]) + sqr(a[2])));
 }
 
 /**
@@ -131,10 +131,10 @@ asl::Vec4_<T> fitSphere(const asl::Array<asl::Vec3_<T>>& points)
  * \return the parameters [a, b, c]
  */
 template<class T>
-asl::Array<T> fitPlaneXY(const asl::Array<asl::Vec3_<T>>& points)
+Array<T> fitPlaneXY(const Array<Vec3_<T>>& points)
 {
-	asl::Matrix_<T> A(points.length(), 3);
-	asl::Matrix_<T> b(points.length(), 1);
+	Matrix_<T> A(points.length(), 3);
+	Matrix_<T> b(points.length(), 1);
 	for (int i = 0; i < points.length(); i++)
 	{
 		A(i, 0) = points[i].x;
@@ -151,10 +151,10 @@ asl::Array<T> fitPlaneXY(const asl::Array<asl::Vec3_<T>>& points)
  * where (cx, cy, cz) is the centroid point on the plane and (nx, ny, nz) is the unit normal vector
  */
 template<class T>
-asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
+Array<T> fitPlane(const Array<Vec3_<T>>& points)
 {
 	if (points.length() < 3)
-		return asl::Array<T>(6, T(0));
+		return Array<T>(6, T(0));
 
 	if (points.length() == 3)
 	{
@@ -168,7 +168,7 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 			normal = Vec3_<T>(0, 0, 1);
 		if (normal.z < 0)
 			normal = -normal;
-		return asl::Array<T>{ points[0].x, points[0].y, points[0].z, normal.x, normal.y, normal.z };
+		return Array<T>{ points[0].x, points[0].y, points[0].z, normal.x, normal.y, normal.z };
 	}
 
 	// Compute centroid
@@ -249,7 +249,7 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 		{
 			cv = Vec3_<T>(0, 0, 1);
 		}
-		
+
 		if (min((cv - normal).length(), (cv + normal).length()) < T(1e-8))
 			break;
 		normal = cv;
@@ -258,23 +258,22 @@ asl::Array<T> fitPlane(const asl::Array<asl::Vec3_<T>>& points)
 	if (normal.z < 0)
 		normal = -normal;
 
-	return asl::Array<T>{ centroid.x, centroid.y, centroid.z, normal.x, normal.y, normal.z };
+	return Array<T>{ centroid.x, centroid.y, centroid.z, normal.x, normal.y, normal.z };
 }
 
 // Alias for old version compatibility
 template<class T>
-asl::Array<T> fitPlane3D(const asl::Array<asl::Vec3_<T>>& points)
+Array<T> fitPlane3D(const Array<Vec3_<T>>& points)
 {
 	return fitPlane(points);
 }
-
 
 /**
  * Fits a plane to a set of 3D points (returns a point and a normal [x, y, z, nx, ny, nz])
  * \deprecated Use fitPlane() instead
  */
 template<class T>
-asl::Array<T> fitPlaneXYZ(const asl::Array<asl::Vec3_<T>>& points)
+Array<T> fitPlaneXYZ(const Array<Vec3_<T>>& points)
 {
 	Matrix_<T> A(points.length(), 3);
 	Matrix_<T> b(points.length(), 1);
@@ -359,7 +358,7 @@ asl::Array<T> fitPlaneXYZ(const asl::Array<asl::Vec3_<T>>& points)
 }
 
 template<class T>
-Pair<Vec3_<T>> getOrthonormalBase(const asl::Vec3_<T>& v)
+Pair<Vec3_<T>> getOrthonormalBase(const Vec3_<T>& v)
 {
 	Vec3_<T> a(1, 0, 0);
 	if (fabs(a * v.normalized()) > T(0.8))
@@ -393,11 +392,11 @@ static Pair<Vec3_<T>> fitCircle(const Array<Vec3_<T>>& points)
  * Fits a line to a set of 2D points and returns it as {point, direction}
  */
 template<class T>
-Pair<Vec2_<T>> fitLine(const asl::Array<asl::Vec2_<T>>& points)
+Pair<Vec2_<T>> fitLine(const Array<Vec2_<T>>& points)
 {
 	if (points.length() < 2)
 		return { Vec2_<T>(0, 0), Vec2_<T>(1, 0) };
-	asl::Vec2_<T> p0(0, 0);
+	Vec2_<T> p0(0, 0);
 	for (int i = 0; i < points.length(); i++)
 		p0 += points[i];
 	p0 /= T(points.length());
@@ -414,7 +413,7 @@ Pair<Vec2_<T>> fitLine(const asl::Array<asl::Vec2_<T>>& points)
 }
 
 template<class T>
-T distancePointLine(const asl::Vec2_<T>& p, const asl::Vec2_<T>& p0, const asl::Vec2_<T>& dir)
+T distancePointLine(const Vec2_<T>& p, const Vec2_<T>& p0, const Vec2_<T>& dir)
 {
 	Vec2_<T> v = p - p0;
 	Vec2_<T> q = p0 + (v * dir) * dir;
@@ -422,7 +421,7 @@ T distancePointLine(const asl::Vec2_<T>& p, const asl::Vec2_<T>& p0, const asl::
 }
 
 template<class T>
-Pair<Vec3_<T>> fitLine(const asl::Array<asl::Vec3_<T>>& points)
+Pair<Vec3_<T>> fitLine(const Array<Vec3_<T>>& points)
 {
 	if (points.length() < 2)
 		return { Vec3_<T>(0, 0, 0), Vec3_<T>(1, 0, 0) };
@@ -430,7 +429,7 @@ Pair<Vec3_<T>> fitLine(const asl::Array<asl::Vec3_<T>>& points)
 	if (points.length() == 2)
 		return { points[0], (points[1] - points[0]).normalized() };
 
-	asl::Vec3_<T> p0(0, 0, 0);
+	Vec3_<T> p0(0, 0, 0);
 	for (int i = 0; i < points.length(); i++)
 		p0 += points[i];
 	p0 /= T(points.length());
@@ -455,21 +454,20 @@ Pair<Vec3_<T>> fitLine(const asl::Array<asl::Vec3_<T>>& points)
 }
 
 template<class T>
-T distancePointLine(const asl::Vec3_<T>& p, const asl::Vec3_<T>& p0, const asl::Vec3_<T>& dir)
+T distancePointLine(const Vec3_<T>& p, const Vec3_<T>& p0, const Vec3_<T>& dir)
 {
 	Vec3_<T> q = p0 + ((p - p0) * dir) * dir;
 	return (p - q).length();
 }
 
-
 /**
  * Estimates the affine transform between two sets of 2D points
  */
 template<class T>
-asl::Matrix3_<T> findAffineTransform(const asl::Array<asl::Vec2_<T>>& points1, const asl::Array<asl::Vec2_<T>>& points2)
+Matrix3_<T> findAffineTransform(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2)
 {
-	asl::Matrix_<T> A(points1.length() * 2, 6);
-	asl::Matrix_<T> b(points1.length() * 2, 1);
+	Matrix_<T> A(points1.length() * 2, 6);
+	Matrix_<T> b(points1.length() * 2, 1);
 	for (int i = 0; i < points1.length(); i++)
 	{
 		A(2 * i, 0) = points1[i].x;
@@ -488,9 +486,9 @@ asl::Matrix3_<T> findAffineTransform(const asl::Array<asl::Vec2_<T>>& points1, c
 		b(2 * i + 1, 0) = points2[i].y;
 	}
 
-	asl::Matrix_<T> x = solve(A, b);
-	return asl::Matrix3_<T>(x[0], x[1], x[2], //
-	                        x[3], x[4], x[5]);
+	Matrix_<T> x = solve(A, b);
+	return Matrix3_<T>(x[0], x[1], x[2], //
+	                   x[3], x[4], x[5]);
 }
 
 template<class T>
@@ -530,10 +528,10 @@ Matrix4_<T> findAffineTransform(const Array<Vec3_<T>>& points1, const Array<Vec3
  * Estimates the rigid transform between two sets of 2D points
  */
 template<class T>
-asl::Matrix3_<T> findRigidTransform(const asl::Array<asl::Vec2_<T>>& points1, const asl::Array<asl::Vec2_<T>>& points2)
+Matrix3_<T> findRigidTransform(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2)
 {
-	asl::Matrix_<T> A(points1.length() * 2, 4);
-	asl::Matrix_<T> b(points1.length() * 2, 1);
+	Matrix_<T> A(points1.length() * 2, 4);
+	Matrix_<T> b(points1.length() * 2, 1);
 	for (int i = 0; i < points1.length(); i++)
 	{
 		A(2 * i, 0) = points1[i].x;
@@ -548,9 +546,9 @@ asl::Matrix3_<T> findRigidTransform(const asl::Array<asl::Vec2_<T>>& points1, co
 		b(2 * i + 1, 0) = points2[i].y;
 	}
 
-	asl::Matrix_<T> x = solve(A, b);
-	return asl::Matrix3_<T>(x[0], x[1], x[2], //
-	                        -x[1], x[0], x[3]);
+	Matrix_<T> x = solve(A, b);
+	return Matrix3_<T>(x[0], x[1], x[2], //
+	                   -x[1], x[0], x[3]);
 }
 
 /**
@@ -654,12 +652,12 @@ Matrix4_<T> findRigidTransform(const Array<Vec3_<T>>& points1, const Array<Vec3_
  * computed as: p2 = (H * Vec3(p1, 1)).h2c();
  */
 template<class T>
-asl::Matrix3_<T> findHomography(const asl::Array<asl::Vec2_<T>>& points1, const asl::Array<asl::Vec2_<T>>& points2)
+Matrix3_<T> findHomography(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2)
 {
 	if (points1.length() != points2.length() || points1.length() < 4)
-		return asl::Matrix3_<T>::identity();
-	asl::Matrix_<T> A(2 * points1.length() + 1, 9, T(0));
-	asl::Matrix_<T> b(2 * points1.length() + 1, 1, T(0));
+		return Matrix3_<T>::identity();
+	Matrix_<T> A(2 * points1.length() + 1, 9, T(0));
+	Matrix_<T> b(2 * points1.length() + 1, 1, T(0));
 	for (int i = 0; i < points1.length(); i++)
 	{
 		A(2 * i, 0) = -points1[i].x;
@@ -677,11 +675,11 @@ asl::Matrix3_<T> findHomography(const asl::Array<asl::Vec2_<T>>& points1, const 
 	}
 	A(2 * points1.length(), 8) = 1;
 	b(2 * points1.length(), 0) = 1;
-	asl::Matrix_<T> x = solve(A, b);
+	Matrix_<T> x = solve(A, b);
 	x *= 1 / x[8];
-	return asl::Matrix3_<T>(x[0], x[1], x[2], //
-	                        x[3], x[4], x[5], //
-	                        x[6], x[7], x[8]);
+	return Matrix3_<T>(x[0], x[1], x[2], //
+	                   x[3], x[4], x[5], //
+	                   x[6], x[7], x[8]);
 }
 
 /**
@@ -689,10 +687,10 @@ asl::Matrix3_<T> findHomography(const asl::Array<asl::Vec2_<T>>& points1, const 
  * \return Array of coefficients in increasing exponent order [a0, a1, a2, ...] for a0 + a1*x + a2*x^2 ...
  */
 template<class T>
-asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec2_<T>>& p, int deg = 1)
+Matrix_<T> fitPoly(const Array<Vec2_<T>>& p, int deg = 1)
 {
-	asl::Matrix_<T> A(p.length(), deg + 1);
-	asl::Matrix_<T> b(p.length());
+	Matrix_<T> A(p.length(), deg + 1);
+	Matrix_<T> b(p.length());
 
 	for (int i = 0; i < p.length(); i++)
 	{
@@ -713,10 +711,10 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec2_<T>>& p, int deg = 1)
  * \return Array of coefficients [a00, a01, ..., a10, a11, ...] f(x,y) = sum(a[i,j] * x^i * y^j)
  */
 template<class T>
-asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec3_<T>>& p, int deg = 2)
+Matrix_<T> fitPoly(const Array<Vec3_<T>>& p, int deg = 2)
 {
-	asl::Matrix_<T> A(p.length(), (deg + 1) * (deg + 1));
-	asl::Matrix_<T> b(p.length());
+	Matrix_<T> A(p.length(), (deg + 1) * (deg + 1));
+	Matrix_<T> b(p.length());
 
 	for (int i = 0; i < p.length(); i++)
 	{
@@ -742,10 +740,10 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec3_<T>>& p, int deg = 2)
  * \return Array of coefficients [a000, a001, ..., a100, a101, ...] f(x,y,z) = sum(a[i,j,k] * x^i * y^j * z^k)
  */
 template<class T>
-asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec4_<T>>& p, int deg = 2)
+Matrix_<T> fitPoly(const Array<Vec4_<T>>& p, int deg = 2)
 {
-	asl::Matrix_<T> A(p.length(), (deg + 1) * (deg + 1) * (deg + 1));
-	asl::Matrix_<T> b(p.length());
+	Matrix_<T> A(p.length(), (deg + 1) * (deg + 1) * (deg + 1));
+	Matrix_<T> b(p.length());
 
 	for (int i = 0; i < p.length(); i++)
 	{
@@ -775,7 +773,7 @@ asl::Matrix_<T> fitPoly(const asl::Array<asl::Vec4_<T>>& p, int deg = 2)
  * Evaluates polynomial at (x)
  */
 template<class T>
-T polynomial(const asl::Matrix_<T>& a, T x)
+T polynomial(const Matrix_<T>& a, T x)
 {
 	int deg = a.length() - 1;
 	T   z = 0, xx = 1;
@@ -792,7 +790,7 @@ T polynomial(const asl::Matrix_<T>& a, T x)
  * Evaluates a bivariate polynomial at (x, y)
  */
 template<class T>
-T polynomial(const asl::Matrix_<T>& a, T x, T y)
+T polynomial(const Matrix_<T>& a, T x, T y)
 {
 	int deg = (int)sqrt(a.length()) - 1;
 	T   z = 0, xx = 1;
@@ -814,7 +812,7 @@ T polynomial(const asl::Matrix_<T>& a, T x, T y)
  * Evaluates a trivariate polynomial at (x, y, z)
  */
 template<class T>
-T polynomial(const asl::Matrix_<T>& a, T x, T y, T z)
+T polynomial(const Matrix_<T>& a, T x, T y, T z)
 {
 	int deg = (int)cbrt(a.length()) - 1;
 	T   w = 0, xx = 1;

@@ -1,4 +1,4 @@
-// Copyright(c) 1999-2026 aslze
+// Copyright(c) 2023-2026 aslze
 // Licensed under the MIT License (http://opensource.org/licenses/MIT)
 
 #pragma once
@@ -7,7 +7,7 @@
 namespace asl
 {
 template<class T, class TP, class R, class F, class F2>
-R fitR(const asl::Array<TP>& points, T threshold, int ms, F fit, F2 dist, R deflt)
+R fitR(const Array<TP>& points, T threshold, int ms, F fit, F2 dist, R deflt)
 {
 	Array<TP> sample;
 	R         best;
@@ -54,7 +54,7 @@ R fitR(const asl::Array<TP>& points, T threshold, int ms, F fit, F2 dist, R defl
 }
 
 template<class T, class TP, class R, class F, class F2>
-R fit2R(const asl::Array<TP>& points1, const asl::Array<TP>& points2, T threshold, int ms, F fit, F2 dist, R deflt)
+R fit2R(const Array<TP>& points1, const Array<TP>& points2, T threshold, int ms, F fit, F2 dist, R deflt)
 {
 	Array<TP> sample1, sample2;
 	R         best;
@@ -126,6 +126,22 @@ Array<T> fitPlaneXYR(const Array<Vec3_<T>>& points, T threshold)
 }
 
 /**
+ * Fits a plane to a set of 3D points using RANSAC and returns [cx, cy, cz, nx, ny, nz].
+ */
+template<class T>
+Array<T> fitPlaneR(const Array<Vec3_<T>>& points, T threshold)
+{
+	auto r = fitR(
+	    points, threshold, 3, [](const Array<Vec3_<T>>& sample) { return fitPlane(sample); },
+	    [](const Array<T>& plane, const Vec3_<T>& p) {
+		    return fabs((p - Vec3_<T>(plane[0], plane[1], plane[2])) * Vec3_<T>(plane[3], plane[4], plane[5]));
+	    },
+	    Array<T>{ T(0), T(0), T(0), T(0), T(0), T(1) });
+
+	return r;
+}
+
+/**
  * Fits a polynomial to a set of 2D points using RANSAC. The polynomial is represented as a matrix of coefficients.
  */
 template<class T>
@@ -165,6 +181,23 @@ Vec3_<T> fitCircleR(const Array<Vec2_<T>>& points, T threshold)
 		    return fabs(sqrt((p.x - circle.x) * (p.x - circle.x) + (p.y - circle.y) * (p.y - circle.y)) - circle.z);
 	    },
 	    Vec3_<T>(0, 0, 0));
+
+	return r;
+}
+
+/**
+ * Fits an ellipse to a set of 2D points using RANSAC. The ellipse is represented {cx, cy, a, b, angle}.
+ */
+template<class T>
+Array<T> fitEllipseR(const Array<Vec2_<T>>& points, T threshold)
+{
+	auto r = fitR(
+	    points, threshold, 5, [](const Array<Vec2_<T>>& sample) { return fitEllipse(sample); },
+	    [](const Array<T>& e, const Vec2_<T>& p) {
+		    T r = sqrt(sqr(p.x) / sqr(e[2]) + sqr(p.y) / sqr(e[3]));
+		    return fabs(1 - 1 / r) * sqrt(sqr(p.x) + sqr(p.y)); // TODO check this distance function
+	    },
+	    Array<T>{ T(0), T(0), T(0), T(0), T(0) });
 
 	return r;
 }
@@ -217,8 +250,7 @@ Pair<Vec3_<T>> fitLineR(const Array<Vec3_<T>>& points, T threshold)
  * Finds a rigid transform between two sets of 2D points using RANSAC
  */
 template<class T>
-asl::Matrix3_<T> findRigidTransformR(const asl::Array<asl::Vec2_<T>>& points1, const asl::Array<asl::Vec2_<T>>& points2,
-                                     T threshold)
+Matrix3_<T> findRigidTransformR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2, T threshold)
 {
 	auto r = fit2R(
 	    points1, points2, threshold, 2,
@@ -234,8 +266,7 @@ asl::Matrix3_<T> findRigidTransformR(const asl::Array<asl::Vec2_<T>>& points1, c
  * Finds a rigid transform between two sets of 3D points using RANSAC
  */
 template<class T>
-asl::Matrix4_<T> findRigidTransformR(const asl::Array<asl::Vec3_<T>>& points1, const asl::Array<asl::Vec3_<T>>& points2,
-                                     T threshold)
+Matrix4_<T> findRigidTransformR(const Array<Vec3_<T>>& points1, const Array<Vec3_<T>>& points2, T threshold)
 {
 	auto r = fit2R(
 	    points1, points2, threshold, 3,
@@ -244,6 +275,52 @@ asl::Matrix4_<T> findRigidTransformR(const asl::Array<asl::Vec3_<T>>& points1, c
 	    },
 	    [](const Matrix4_<T>& transform, const Vec3_<T>& p1, const Vec3_<T>& p2) { return (p2 - transform * p1).norm(); },
 	    Matrix4_<T>::identity());
+	return r;
+}
+
+/**
+ * Finds an affine transform between two sets of 3D points using RANSAC
+ */
+template<class T>
+Matrix4_<T> findAffineTransformR(const Array<Vec3_<T>>& points1, const Array<Vec3_<T>>& points2, T threshold)
+{
+	auto r = fit2R(
+	    points1, points2, threshold, 3,
+	    [](const Array<Vec3_<T>>& sample1, const Array<Vec3_<T>>& sample2) {
+		    return findAffineTransform(sample1, sample2);
+	    },
+	    [](const Matrix4_<T>& transform, const Vec3_<T>& p1, const Vec3_<T>& p2) { return (p2 - transform * p1).norm(); },
+	    Matrix4_<T>::identity());
+	return r;
+}
+
+/**
+ * Finds an affine transform between two sets of 2D points using RANSAC
+ */
+template<class T>
+Matrix3_<T> findAffineTransformR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2, T threshold)
+{
+	auto r = fit2R(
+	    points1, points2, threshold, 3,
+	    [](const Array<Vec2_<T>>& sample1, const Array<Vec2_<T>>& sample2) {
+		    return findAffineTransform(sample1, sample2);
+	    },
+	    [](const Matrix3_<T>& transform, const Vec2_<T>& p1, const Vec2_<T>& p2) { return (p2 - transform * p1).norm(); },
+	    Matrix3_<T>::identity());
+	return r;
+}
+
+/**
+ * Finds an homography transform between two sets of 2D points using RANSAC
+ */
+template<class T>
+Matrix3_<T> findHomographyR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2, T threshold)
+{
+	auto r = fit2R(
+	    points1, points2, threshold, 3,
+	    [](const Array<Vec2_<T>>& sample1, const Array<Vec2_<T>>& sample2) { return findHomography(sample1, sample2); },
+	    [](const Matrix3_<T>& transform, const Vec2_<T>& p1, const Vec2_<T>& p2) { return (p2 - transform ^ p1).norm(); },
+	    Matrix3_<T>::identity());
 	return r;
 }
 
