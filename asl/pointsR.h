@@ -194,8 +194,9 @@ Array<T> fitEllipseR(const Array<Vec2_<T>>& points, T threshold)
 	auto r = fitR(
 	    points, threshold, 5, [](const Array<Vec2_<T>>& sample) { return fitEllipse(sample); },
 	    [](const Array<T>& e, const Vec2_<T>& p) {
-		    T r = sqrt(sqr(p.x) / sqr(e[2]) + sqr(p.y) / sqr(e[3]));
-		    return fabs(1 - 1 / r) * sqrt(sqr(p.x) + sqr(p.y)); // TODO check this distance function
+		    auto q = (Matrix3::rotate(-e[4]) * Matrix3::translate(-e[0], -e[1])) * p;
+		    T    r = sqrt(sqr(q.x) / sqr(e[2]) + sqr(q.y) / sqr(e[3]));
+		    return fabs(1 - 1 / r) * sqrt(sqr(q.x) + sqr(q.y));
 	    },
 	    Array<T>{ T(0), T(0), T(0), T(0), T(0) });
 
