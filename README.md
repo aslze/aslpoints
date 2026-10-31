@@ -31,7 +31,7 @@ Currently available functions (may change in the future):
 
 Can easily be included using CMake in other projects where ASL is already. For example:
 
-
+There are also *robust* versions of those using a RANSAC algorithm in `<pointsR.h>`. They are named the same with an added 'R' (like `fitPlaneR` or `findAffineTransformR`) and they receive an extra argument for the outlier threshold distance.
 
 ```cmake
 include(FetchContent)
