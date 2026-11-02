@@ -6,8 +6,17 @@
 
 namespace asl
 {
+
+struct RansacParams
+{
+	int    maxiter = 200;
+	double inlierFracStop2 = 0.9;
+	double inlierFracStop1 = 0.995;
+	double inlierLow = 0.1;
+};
+
 template<class T, class TP, class R, class F, class F2>
-R fitR(const Array<TP>& points, T threshold, int ms, F fit, F2 dist, R deflt)
+R fitR(const Array<TP>& points, T threshold, int ms, F fit, F2 dist, R deflt, const RansacParams& params = RansacParams())
 {
 	Array<TP> sample;
 	R         best;
@@ -17,7 +26,7 @@ R fitR(const Array<TP>& points, T threshold, int ms, F fit, F2 dist, R deflt)
 
 	Random random;
 
-	for (int i = 0; i < 200; i++)
+	for (int i = 0; i < params.maxiter; i++)
 	{
 		sample.clear();
 		for (int j = 0; j < ms; j++)
@@ -34,7 +43,8 @@ R fitR(const Array<TP>& points, T threshold, int ms, F fit, F2 dist, R deflt)
 			mi = ni;
 			best = model;
 		}
-		if ((i > 10 && ni > points.length() * 0.9) || (i > 2 && ni > points.length() * 0.995))
+		if ((i > 10 && ni > points.length() * params.inlierFracStop2) ||
+		    (i > 2 && ni > points.length() * params.inlierFracStop1))
 			break;
 	}
 
@@ -45,7 +55,7 @@ R fitR(const Array<TP>& points, T threshold, int ms, F fit, F2 dist, R deflt)
 			inliers << points[i];
 	}
 
-	if (mi < points.length() * 0.10)
+	if (mi < points.length() * params.inlierLow)
 		best = fit(points);
 	else
 		best = fit(inliers);
@@ -54,7 +64,8 @@ R fitR(const Array<TP>& points, T threshold, int ms, F fit, F2 dist, R deflt)
 }
 
 template<class T, class TP, class R, class F, class F2>
-R fit2R(const Array<TP>& points1, const Array<TP>& points2, T threshold, int ms, F fit, F2 dist, R deflt)
+R fit2R(const Array<TP>& points1, const Array<TP>& points2, T threshold, int ms, F fit, F2 dist, R deflt,
+        const RansacParams& params = RansacParams())
 {
 	Array<TP> sample1, sample2;
 	R         best;
@@ -64,7 +75,7 @@ R fit2R(const Array<TP>& points1, const Array<TP>& points2, T threshold, int ms,
 
 	Random random;
 
-	for (int i = 0; i < 200; i++)
+	for (int i = 0; i < params.maxiter; i++)
 	{
 		sample1.clear();
 		sample2.clear();
@@ -86,7 +97,8 @@ R fit2R(const Array<TP>& points1, const Array<TP>& points2, T threshold, int ms,
 			mi = ni;
 			best = model;
 		}
-		if ((i > 10 && ni > points1.length() * 0.9) || (i > 2 && ni > points1.length() * 0.995))
+		if ((i > 10 && ni > points1.length() * params.inlierFracStop2) ||
+		    (i > 2 && ni > points1.length() * params.inlierFracStop1))
 			break;
 	}
 
@@ -102,7 +114,7 @@ R fit2R(const Array<TP>& points1, const Array<TP>& points2, T threshold, int ms,
 		}
 	}
 
-	if (mi < points1.length() * 0.10)
+	if (mi < points1.length() * params.inlierLow)
 		best = fit(points1, points2);
 	else
 		best = fit(inliers1, inliers2);
@@ -115,12 +127,12 @@ R fit2R(const Array<TP>& points1, const Array<TP>& points2, T threshold, int ms,
  * such that z = ax + by + c.
  */
 template<class T>
-Array<T> fitPlaneXYR(const Array<Vec3_<T>>& points, T threshold)
+Array<T> fitPlaneXYR(const Array<Vec3_<T>>& points, T threshold, const RansacParams& params = RansacParams())
 {
 	auto r = fitR(
 	    points, threshold, 3, [](const Array<Vec3_<T>>& sample) { return fitPlaneXY(sample); },
 	    [](const Array<T>& plane, const Vec3_<T>& p) { return fabs(plane[0] * p.x + plane[1] * p.y + plane[2] - p.z); },
-	    Array<T>{ T(0), T(0), T(0) });
+	    Array<T>{ T(0), T(0), T(0) }, params);
 
 	return r;
 }
@@ -129,14 +141,14 @@ Array<T> fitPlaneXYR(const Array<Vec3_<T>>& points, T threshold)
  * Fits a plane to a set of 3D points using RANSAC and returns [cx, cy, cz, nx, ny, nz].
  */
 template<class T>
-Array<T> fitPlaneR(const Array<Vec3_<T>>& points, T threshold)
+Array<T> fitPlaneR(const Array<Vec3_<T>>& points, T threshold, const RansacParams& params = RansacParams())
 {
 	auto r = fitR(
 	    points, threshold, 3, [](const Array<Vec3_<T>>& sample) { return fitPlane(sample); },
 	    [](const Array<T>& plane, const Vec3_<T>& p) {
 		    return fabs((p - Vec3_<T>(plane[0], plane[1], plane[2])) * Vec3_<T>(plane[3], plane[4], plane[5]));
 	    },
-	    Array<T>{ T(0), T(0), T(0), T(0), T(0), T(0) });
+	    Array<T>{ T(0), T(0), T(0), T(0), T(0), T(0) }, params);
 
 	return r;
 }
@@ -145,12 +157,12 @@ Array<T> fitPlaneR(const Array<Vec3_<T>>& points, T threshold)
  * Fits a polynomial to a set of 2D points using RANSAC. The polynomial is represented as a matrix of coefficients.
  */
 template<class T>
-Matrix_<T> fitPolyR(const Array<Vec2_<T>>& points, int deg, T threshold)
+Matrix_<T> fitPolyR(const Array<Vec2_<T>>& points, int deg, T threshold, const RansacParams& params = RansacParams())
 {
 	auto r = fitR(
 	    points, threshold, deg + 1, [deg](const Array<Vec2_<T>>& sample) { return fitPoly(sample, deg); },
 	    [](const Matrix_<T>& poly, const Vec2_<T>& p) { return fabs(polynomial(poly, p.x) - p.y); },
-	    Matrix_<T>(deg + 1, 1, T(0)));
+	    Matrix_<T>(deg + 1, 1, T(0)), params);
 	return r;
 }
 
@@ -159,13 +171,13 @@ Matrix_<T> fitPolyR(const Array<Vec2_<T>>& points, int deg, T threshold)
  * coefficients.
  */
 template<class T>
-Matrix_<T> fitPolyR(const Array<Vec3_<T>>& points, int deg, T threshold)
+Matrix_<T> fitPolyR(const Array<Vec3_<T>>& points, int deg, T threshold, const RansacParams& params = RansacParams())
 {
 	auto r = fitR(
 	    points, threshold, 2 * (deg + 1) * (deg + 1),
 	    [deg](const Array<Vec3_<T>>& sample) { return fitPoly(sample, deg); },
 	    [](const Matrix_<T>& poly, const Vec3_<T>& p) { return fabs(polynomial(poly, p.x, p.y) - p.z); },
-	    Matrix_<T>((deg + 1) * (deg + 1), 1, T(0)));
+	    Matrix_<T>((deg + 1) * (deg + 1), 1, T(0)), params);
 	return r;
 }
 
@@ -173,14 +185,14 @@ Matrix_<T> fitPolyR(const Array<Vec3_<T>>& points, int deg, T threshold)
  * Fits a circle to a set of 2D points using RANSAC. The circle is represented as a 3D vector (x, y, radius).
  */
 template<class T>
-Vec3_<T> fitCircleR(const Array<Vec2_<T>>& points, T threshold)
+Vec3_<T> fitCircleR(const Array<Vec2_<T>>& points, T threshold, const RansacParams& params = RansacParams())
 {
 	auto r = fitR(
 	    points, threshold, 3, [](const Array<Vec2_<T>>& sample) { return fitCircle(sample); },
 	    [](const Vec3_<T>& circle, const Vec2_<T>& p) {
 		    return fabs(sqrt((p.x - circle.x) * (p.x - circle.x) + (p.y - circle.y) * (p.y - circle.y)) - circle.z);
 	    },
-	    Vec3_<T>(0, 0, 0));
+	    Vec3_<T>(0, 0, 0), params);
 
 	return r;
 }
@@ -189,7 +201,7 @@ Vec3_<T> fitCircleR(const Array<Vec2_<T>>& points, T threshold)
  * Fits an ellipse to a set of 2D points using RANSAC. The ellipse is represented {cx, cy, a, b, angle}.
  */
 template<class T>
-Array<T> fitEllipseR(const Array<Vec2_<T>>& points, T threshold)
+Array<T> fitEllipseR(const Array<Vec2_<T>>& points, T threshold, const RansacParams& params = RansacParams())
 {
 	auto r = fitR(
 	    points, threshold, 5, [](const Array<Vec2_<T>>& sample) { return fitEllipse(sample); },
@@ -198,7 +210,7 @@ Array<T> fitEllipseR(const Array<Vec2_<T>>& points, T threshold)
 		    T    r = sqrt(sqr(q.x) / sqr(e[2]) + sqr(q.y) / sqr(e[3]));
 		    return fabs(1 - 1 / r) * sqrt(sqr(q.x) + sqr(q.y));
 	    },
-	    Array<T>{ T(0), T(0), T(0), T(0), T(0) });
+	    Array<T>{ T(0), T(0), T(0), T(0), T(0) }, params);
 
 	return r;
 }
@@ -207,7 +219,7 @@ Array<T> fitEllipseR(const Array<Vec2_<T>>& points, T threshold)
  * Fits a sphere to a set of 3D points using RANSAC. The sphere is represented as a 4D vector (x, y, z, radius).
  */
 template<class T>
-Vec4_<T> fitSphereR(const Array<Vec3_<T>>& points, T threshold)
+Vec4_<T> fitSphereR(const Array<Vec3_<T>>& points, T threshold, const RansacParams& params = RansacParams())
 {
 	auto r = fitR(
 	    points, threshold, 4, [](const Array<Vec3_<T>>& sample) { return fitSphere(sample); },
@@ -216,7 +228,7 @@ Vec4_<T> fitSphereR(const Array<Vec3_<T>>& points, T threshold)
 		                     (p.z - sphere.z) * (p.z - sphere.z)) -
 		                sphere.w);
 	    },
-	    Vec4_<T>(0, 0, 0, 0));
+	    Vec4_<T>(0, 0, 0, 0), params);
 	return r;
 }
 
@@ -224,12 +236,12 @@ Vec4_<T> fitSphereR(const Array<Vec3_<T>>& points, T threshold)
  * Fits a line to a set of 2D points using RANSAC. The line is represented as a pair of points (start and end).
  */
 template<class T>
-Pair<Vec2_<T>> fitLineR(const Array<Vec2_<T>>& points, T threshold)
+Pair<Vec2_<T>> fitLineR(const Array<Vec2_<T>>& points, T threshold, const RansacParams& params = RansacParams())
 {
 	auto r = fitR(
 	    points, threshold, 2, [](const Array<Vec2_<T>>& sample) { return fitLine(sample); },
 	    [](const Pair<Vec2_<T>>& line, const Vec2_<T>& p) { return distancePointLine(p, line.first, line.second); },
-	    Pair<Vec2_<T>>(Vec2_<T>(0, 0), Vec2_<T>(0, 0)));
+	    Pair<Vec2_<T>>(Vec2_<T>(0, 0), Vec2_<T>(0, 0)), params);
 	return r;
 }
 
@@ -237,12 +249,12 @@ Pair<Vec2_<T>> fitLineR(const Array<Vec2_<T>>& points, T threshold)
  * Fits a line to a set of 3D points using RANSAC. The line is represented as a pair of points (start and end).
  */
 template<class T>
-Pair<Vec3_<T>> fitLineR(const Array<Vec3_<T>>& points, T threshold)
+Pair<Vec3_<T>> fitLineR(const Array<Vec3_<T>>& points, T threshold, const RansacParams& params = RansacParams())
 {
 	auto r = fitR(
 	    points, threshold, 2, [](const Array<Vec3_<T>>& sample) { return fitLine(sample); },
 	    [](const Pair<Vec3_<T>>& line, const Vec3_<T>& p) { return distancePointLine(p, line.first, line.second); },
-	    Pair<Vec3_<T>>(Vec3_<T>(0, 0, 0), Vec3_<T>(0, 0, 0)));
+	    Pair<Vec3_<T>>(Vec3_<T>(0, 0, 0), Vec3_<T>(0, 0, 0)), params);
 
 	return r;
 }
@@ -251,7 +263,8 @@ Pair<Vec3_<T>> fitLineR(const Array<Vec3_<T>>& points, T threshold)
  * Finds a rigid transform between two sets of 2D points using RANSAC
  */
 template<class T>
-Matrix3_<T> findRigidTransformR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2, T threshold)
+Matrix3_<T> findRigidTransformR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2, T threshold,
+                                const RansacParams& params = RansacParams())
 {
 	auto r = fit2R(
 	    points1, points2, threshold, 2,
@@ -259,7 +272,7 @@ Matrix3_<T> findRigidTransformR(const Array<Vec2_<T>>& points1, const Array<Vec2
 		    return findRigidTransform(sample1, sample2);
 	    },
 	    [](const Matrix3_<T>& transform, const Vec2_<T>& p1, const Vec2_<T>& p2) { return (p2 - transform * p1).norm(); },
-	    Matrix3_<T>::zeros());
+	    Matrix3_<T>::zeros(), params);
 	return r;
 }
 
@@ -267,7 +280,8 @@ Matrix3_<T> findRigidTransformR(const Array<Vec2_<T>>& points1, const Array<Vec2
  * Finds a rigid transform between two sets of 3D points using RANSAC
  */
 template<class T>
-Matrix4_<T> findRigidTransformR(const Array<Vec3_<T>>& points1, const Array<Vec3_<T>>& points2, T threshold)
+Matrix4_<T> findRigidTransformR(const Array<Vec3_<T>>& points1, const Array<Vec3_<T>>& points2, T threshold,
+                                const RansacParams& params = RansacParams())
 {
 	auto r = fit2R(
 	    points1, points2, threshold, 3,
@@ -275,7 +289,7 @@ Matrix4_<T> findRigidTransformR(const Array<Vec3_<T>>& points1, const Array<Vec3
 		    return findRigidTransform(sample1, sample2);
 	    },
 	    [](const Matrix4_<T>& transform, const Vec3_<T>& p1, const Vec3_<T>& p2) { return (p2 - transform * p1).norm(); },
-	    Matrix4_<T>::zeros());
+	    Matrix4_<T>::zeros(), params);
 	return r;
 }
 
@@ -283,7 +297,8 @@ Matrix4_<T> findRigidTransformR(const Array<Vec3_<T>>& points1, const Array<Vec3
  * Finds an affine transform between two sets of 3D points using RANSAC
  */
 template<class T>
-Matrix4_<T> findAffineTransformR(const Array<Vec3_<T>>& points1, const Array<Vec3_<T>>& points2, T threshold)
+Matrix4_<T> findAffineTransformR(const Array<Vec3_<T>>& points1, const Array<Vec3_<T>>& points2, T threshold,
+                                 const RansacParams& params = RansacParams())
 {
 	auto r = fit2R(
 	    points1, points2, threshold, 4,
@@ -291,7 +306,7 @@ Matrix4_<T> findAffineTransformR(const Array<Vec3_<T>>& points1, const Array<Vec
 		    return findAffineTransform(sample1, sample2);
 	    },
 	    [](const Matrix4_<T>& transform, const Vec3_<T>& p1, const Vec3_<T>& p2) { return (p2 - transform * p1).norm(); },
-	    Matrix4_<T>::zeros());
+	    Matrix4_<T>::zeros(), params);
 	return r;
 }
 
@@ -299,7 +314,8 @@ Matrix4_<T> findAffineTransformR(const Array<Vec3_<T>>& points1, const Array<Vec
  * Finds an affine transform between two sets of 2D points using RANSAC
  */
 template<class T>
-Matrix3_<T> findAffineTransformR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2, T threshold)
+Matrix3_<T> findAffineTransformR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2, T threshold,
+                                 const RansacParams& params = RansacParams())
 {
 	auto r = fit2R(
 	    points1, points2, threshold, 3,
@@ -307,7 +323,7 @@ Matrix3_<T> findAffineTransformR(const Array<Vec2_<T>>& points1, const Array<Vec
 		    return findAffineTransform(sample1, sample2);
 	    },
 	    [](const Matrix3_<T>& transform, const Vec2_<T>& p1, const Vec2_<T>& p2) { return (p2 - transform * p1).norm(); },
-	    Matrix3_<T>::zeros());
+	    Matrix3_<T>::zeros(), params);
 	return r;
 }
 
@@ -315,7 +331,8 @@ Matrix3_<T> findAffineTransformR(const Array<Vec2_<T>>& points1, const Array<Vec
  * Finds an homography transform between two sets of 2D points using RANSAC
  */
 template<class T>
-Matrix3_<T> findHomographyR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2, T threshold)
+Matrix3_<T> findHomographyR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2, T threshold,
+                            const RansacParams& params = RansacParams())
 {
 	auto r = fit2R(
 	    points1, points2, threshold, 4,
@@ -323,7 +340,7 @@ Matrix3_<T> findHomographyR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>
 	    [](const Matrix3_<T>& transform, const Vec2_<T>& p1, const Vec2_<T>& p2) {
 		    return (p2 - (transform ^ p1)).norm();
 	    },
-	    Matrix3_<T>::zeros());
+	    Matrix3_<T>::zeros(), params);
 	return r;
 }
 
