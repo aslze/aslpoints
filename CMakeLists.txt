@@ -47,4 +47,9 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
 	add_test(NAME fitting COMMAND ${TARGET})
 
+	add_executable(tests2 tests2.cpp)
+	target_compile_definitions(tests2 PRIVATE ASL_TESTS)
+	target_link_libraries(tests2 asls aslpoints)
+	add_test(NAME fitting_robust COMMAND tests2)
+
 endif()

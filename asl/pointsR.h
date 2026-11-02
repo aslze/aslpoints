@@ -136,7 +136,7 @@ Array<T> fitPlaneR(const Array<Vec3_<T>>& points, T threshold)
 	    [](const Array<T>& plane, const Vec3_<T>& p) {
 		    return fabs((p - Vec3_<T>(plane[0], plane[1], plane[2])) * Vec3_<T>(plane[3], plane[4], plane[5]));
 	    },
-	    Array<T>{ T(0), T(0), T(0), T(0), T(0), T(1) });
+	    Array<T>{ T(0), T(0), T(0), T(0), T(0), T(0) });
 
 	return r;
 }
@@ -229,7 +229,7 @@ Pair<Vec2_<T>> fitLineR(const Array<Vec2_<T>>& points, T threshold)
 	auto r = fitR(
 	    points, threshold, 2, [](const Array<Vec2_<T>>& sample) { return fitLine(sample); },
 	    [](const Pair<Vec2_<T>>& line, const Vec2_<T>& p) { return distancePointLine(p, line.first, line.second); },
-	    Pair<Vec2_<T>>(Vec2_<T>(0, 0), Vec2_<T>(1, 0)));
+	    Pair<Vec2_<T>>(Vec2_<T>(0, 0), Vec2_<T>(0, 0)));
 	return r;
 }
 
@@ -242,7 +242,7 @@ Pair<Vec3_<T>> fitLineR(const Array<Vec3_<T>>& points, T threshold)
 	auto r = fitR(
 	    points, threshold, 2, [](const Array<Vec3_<T>>& sample) { return fitLine(sample); },
 	    [](const Pair<Vec3_<T>>& line, const Vec3_<T>& p) { return distancePointLine(p, line.first, line.second); },
-	    Pair<Vec3_<T>>(Vec3_<T>(0, 0, 0), Vec3_<T>(1, 0, 0)));
+	    Pair<Vec3_<T>>(Vec3_<T>(0, 0, 0), Vec3_<T>(0, 0, 0)));
 
 	return r;
 }
@@ -259,7 +259,7 @@ Matrix3_<T> findRigidTransformR(const Array<Vec2_<T>>& points1, const Array<Vec2
 		    return findRigidTransform(sample1, sample2);
 	    },
 	    [](const Matrix3_<T>& transform, const Vec2_<T>& p1, const Vec2_<T>& p2) { return (p2 - transform * p1).norm(); },
-	    Matrix3_<T>::identity());
+	    Matrix3_<T>::zeros());
 	return r;
 }
 
@@ -275,7 +275,7 @@ Matrix4_<T> findRigidTransformR(const Array<Vec3_<T>>& points1, const Array<Vec3
 		    return findRigidTransform(sample1, sample2);
 	    },
 	    [](const Matrix4_<T>& transform, const Vec3_<T>& p1, const Vec3_<T>& p2) { return (p2 - transform * p1).norm(); },
-	    Matrix4_<T>::identity());
+	    Matrix4_<T>::zeros());
 	return r;
 }
 
@@ -286,12 +286,12 @@ template<class T>
 Matrix4_<T> findAffineTransformR(const Array<Vec3_<T>>& points1, const Array<Vec3_<T>>& points2, T threshold)
 {
 	auto r = fit2R(
-	    points1, points2, threshold, 3,
+	    points1, points2, threshold, 4,
 	    [](const Array<Vec3_<T>>& sample1, const Array<Vec3_<T>>& sample2) {
 		    return findAffineTransform(sample1, sample2);
 	    },
 	    [](const Matrix4_<T>& transform, const Vec3_<T>& p1, const Vec3_<T>& p2) { return (p2 - transform * p1).norm(); },
-	    Matrix4_<T>::identity());
+	    Matrix4_<T>::zeros());
 	return r;
 }
 
@@ -307,7 +307,7 @@ Matrix3_<T> findAffineTransformR(const Array<Vec2_<T>>& points1, const Array<Vec
 		    return findAffineTransform(sample1, sample2);
 	    },
 	    [](const Matrix3_<T>& transform, const Vec2_<T>& p1, const Vec2_<T>& p2) { return (p2 - transform * p1).norm(); },
-	    Matrix3_<T>::identity());
+	    Matrix3_<T>::zeros());
 	return r;
 }
 
@@ -318,10 +318,12 @@ template<class T>
 Matrix3_<T> findHomographyR(const Array<Vec2_<T>>& points1, const Array<Vec2_<T>>& points2, T threshold)
 {
 	auto r = fit2R(
-	    points1, points2, threshold, 3,
+	    points1, points2, threshold, 4,
 	    [](const Array<Vec2_<T>>& sample1, const Array<Vec2_<T>>& sample2) { return findHomography(sample1, sample2); },
-	    [](const Matrix3_<T>& transform, const Vec2_<T>& p1, const Vec2_<T>& p2) { return (p2 - transform ^ p1).norm(); },
-	    Matrix3_<T>::identity());
+	    [](const Matrix3_<T>& transform, const Vec2_<T>& p1, const Vec2_<T>& p2) {
+		    return (p2 - (transform ^ p1)).norm();
+	    },
+	    Matrix3_<T>::zeros());
 	return r;
 }
 

@@ -78,7 +78,7 @@ Array<T> fitEllipse(const Array<Vec2_<T>>& points)
 	if (d == 0)
 		return e;
 	T k1 = 2 * (a[0] * sqr(a[3]) + sqr(a[2]) - a[1] * a[2] * a[3] + (sqr(a[1]) - 4 * a[0]) * a[4]);
-	T k2 = sqrt(sqr(a[0] - 1) + sqr(a[1]));
+	T k2 = sqrt(sqr(1 - a[0]) + sqr(a[1]));
 	T q = T(1) / d;
 
 	e = { p0.x + (2 * a[2] - a[1] * a[3]) * q, p0.y + (2 * a[0] * a[3] - a[1] * a[2]) * q,
