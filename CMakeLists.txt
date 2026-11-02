@@ -9,7 +9,7 @@ if(NOT TARGET asls)
 	if(NOT TARGET asls)
 		cmake_minimum_required(VERSION 3.14...3.24)
 		include(FetchContent)
-		FetchContent_Declare(asl URL https://github.com/aslze/asl/archive/1.11.14.zip)
+		FetchContent_Declare(asl URL https://github.com/aslze/asl/archive/1.12.0.zip)
 		FetchContent_MakeAvailable(asl)
 	endif()
 endif()
@@ -32,24 +32,8 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
 	target_link_libraries(${TARGET} asls aslpoints)
 
-	set(TARGET tests)
-
-	set(SRC
-		tests.cpp
-	)
-
-	add_executable(${TARGET} ${SRC})
-
-	target_compile_definitions(${TARGET} PRIVATE ASL_TESTS)
-	target_link_libraries(${TARGET} asls aslpoints)
-
 	enable_testing()
 
-	add_test(NAME fitting COMMAND ${TARGET})
-
-	add_executable(tests2 tests2.cpp)
-	target_compile_definitions(tests2 PRIVATE ASL_TESTS)
-	target_link_libraries(tests2 asls aslpoints)
-	add_test(NAME fitting_robust COMMAND tests2)
+	add_subdirectory(test)
 
 endif()
